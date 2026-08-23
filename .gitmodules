@@ -1,0 +1,6 @@
+[submodule "host"]
+	path = host
+	url = https://github.com/hoki621/codex-zero-kb02-host.git
+[submodule "firmware"]
+	path = firmware
+	url = https://github.com/hoki621/codex-zero-kb02-firmware.git
