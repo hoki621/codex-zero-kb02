@@ -16,7 +16,72 @@ Waveshare, or the upstream projects listed in [UPSTREAMS.md](UPSTREAMS.md).
 git clone --recurse-submodules https://github.com/hoki621/codex-zero-kb02.git
 cd codex-zero-kb02
 mise install
+cd host
+npm ci
 ```
+
+The parent commit pins the tested component pair:
+
+| Component | Commit |
+| --- | --- |
+| Host | `779aff5993afa5537cdfba0d1c15939006adb65b` |
+| Firmware | `23165ca7995ed86a93b29b84d5d0b923365b24bf` |
+
+## Run
+
+Flash the pinned firmware only after verifying the target device and obtaining
+explicit permission for that hardware operation. Build instructions are in
+[`firmware/README.md`](firmware/README.md).
+
+Start the bridge from a Herdr-managed pane. Herdr supplies
+`HERDR_SOCKET_PATH`; use the exact serial path when more than one USB modem is
+connected:
+
+```sh
+cd host
+ZERO_KB02_PORT=/dev/cu.usbmodemzero_kb02_v11 npm start
+```
+
+Stop it with Ctrl-C. The daemon maps the six agent keys to safe `agent.focus`
+requests only after resolving the current pane for the assigned terminal.
+
+## Update
+
+Update only to another parent commit so the tested child pair stays intact:
+
+```sh
+git pull --ff-only
+git submodule update --init --recursive
+mise install
+cd host
+npm ci
+```
+
+Do not use `git submodule update --remote`.
+
+## Recovery
+
+- USB disconnect: leave the daemon running; it retries the exact configured
+  port and sends a fresh handshake and complete state after reconnect.
+- Herdr restart: the panel goes offline and the daemon reconnects, rebuilds the
+  six slots, and retransmits a complete state. A five-second reconcile repairs
+  missed Herdr events.
+- Host restart: run the same `npm start` command; generations are not reused
+  across the new USB session.
+- Firmware recovery: stop the daemon first and follow the verified procedure in
+  [`firmware/docs/hardware-diagnostics.md`](firmware/docs/hardware-diagnostics.md).
+  Flashing and BOOTSEL/RST always require separate explicit permission.
+
+## Known constraints
+
+- v1 supports up to six detected Codex agents and Herdr protocol 20 as shipped
+  by Herdr 0.8.2.
+- Only K2, K3, and K5-K8 focus agent slots 0-5. Encoder, joystick, K1, K4, and
+  K9-K12 have no Host action in v1.
+- macOS USB discovery is limited to `/dev/cu.usbmodem*`; set
+  `ZERO_KB02_PORT` when discovery is ambiguous.
+- There is no launchd service, settings GUI, HID/Vial control, arbitrary shell
+  execution, Approve/Deny, push-to-talk, reasoning control, or Zed ACP support.
 
 ## Development workflow
 
