@@ -33,17 +33,18 @@ Flash the pinned firmware only after verifying the target device and obtaining
 explicit permission for that hardware operation. Build instructions are in
 [`firmware/README.md`](firmware/README.md).
 
-Start the bridge from a Herdr-managed pane. Herdr supplies
-`HERDR_SOCKET_PATH`; use the exact serial path when more than one USB modem is
-connected:
+Start the bridge from a normal terminal outside Herdr-managed panes. Set
+`HERDR_SOCKET_PATH` explicitly so the daemon can reconnect after a Herdr server
+restart; use the exact serial path when more than one USB modem is connected:
 
 ```sh
 cd host
-ZERO_KB02_PORT=/dev/cu.usbmodemzero_kb02_v11 npm start
+HERDR_SOCKET_PATH=/Users/ibuki/.config/herdr/herdr.sock ZERO_KB02_PORT=/dev/cu.usbmodemzero_kb02_v11 npm start
 ```
 
 Stop it with Ctrl-C. The daemon maps the six agent keys to safe `agent.focus`
-requests only after resolving the current pane for the assigned terminal.
+requests only after resolving the current pane for the assigned terminal. A
+daemon running inside a Herdr-managed pane cannot survive a server restart.
 
 ## Update
 
@@ -63,11 +64,11 @@ Do not use `git submodule update --remote`.
 
 - USB disconnect: leave the daemon running; it retries the exact configured
   port and sends a fresh handshake and complete state after reconnect.
-- Herdr restart: the panel goes offline and the daemon reconnects, rebuilds the
-  six slots, and retransmits a complete state. A five-second reconcile repairs
-  missed Herdr events.
-- Host restart: run the same `npm start` command; generations are not reused
-  across the new USB session.
+- Herdr restart: an externally running daemon reconnects to the configured
+  Herdr socket, rebuilds the six slots, and retransmits a complete state. A
+  five-second reconcile repairs missed Herdr events.
+- Host restart: run the same explicit `HERDR_SOCKET_PATH` and `ZERO_KB02_PORT`
+  command; generations are not reused across the new USB session.
 - Firmware recovery: stop the daemon first and follow the verified procedure in
   [`firmware/docs/hardware-diagnostics.md`](firmware/docs/hardware-diagnostics.md).
   Flashing and BOOTSEL/RST always require separate explicit permission.
