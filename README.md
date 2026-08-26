@@ -24,7 +24,7 @@ The parent commit pins the tested component pair:
 
 | Component | Commit |
 | --- | --- |
-| Host | `779aff5993afa5537cdfba0d1c15939006adb65b` |
+| Host | `53c004b43694eab38a918ce330fd4c6c8020f52d` |
 | Firmware | `55966836da03fa67989bbd00bddcad6a454fab4c` |
 
 ## Run
@@ -39,7 +39,7 @@ restart; use the exact serial path when more than one USB modem is connected:
 
 ```sh
 cd host
-HERDR_SOCKET_PATH=/Users/ibuki/.config/herdr/herdr.sock ZERO_KB02_PORT=/dev/cu.usbmodemzero_kb02_v11 npm start
+HERDR_SOCKET_PATH="$HOME/.config/herdr/herdr.sock" ZERO_KB02_PORT=/dev/cu.usbmodemzero_kb02_v11 npm start
 ```
 
 Stop it with Ctrl-C. The daemon maps the six agent keys to safe `agent.focus`
