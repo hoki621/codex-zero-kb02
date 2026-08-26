@@ -24,7 +24,7 @@ The parent commit pins the tested component pair:
 
 | Component | Commit |
 | --- | --- |
-| Host | `8b18d0ad6c1b5a770fa66db3c93e54a230857a02` |
+| Host | `a81550fb59668d51edd5b64de9e02212a248c2f2` |
 | Firmware | `af1ff22cd11db0e8daa6a49cda8da57b064a1718` |
 
 ## Run
@@ -76,8 +76,10 @@ Do not use `git submodule update --remote`.
   record existed at disconnect, K4 remains locked rather than guessing whether
   the old pane survived.
 - Host restart: run the same explicit `HERDR_SOCKET_PATH` and `ZERO_KB02_PORT`
-  command; generations are not reused across the new USB session. If
-  `owned-pane.json` exists, first verify the old popup is closed or Herdr was
+  command; generations are not reused across the new USB session. A stale,
+  unreachable `status.sock` is removed only if its identity is unchanged;
+  a live, replaced, or ambiguous socket remains untouched and startup fails.
+  If `owned-pane.json` exists, first verify the old popup is closed or Herdr was
   restarted, then remove only
   `$HOME/.local/state/herdr/plugins/hoki621.zero-kb02/owned-pane.json`.
 - Firmware recovery: stop the daemon first and follow the verified procedure in
