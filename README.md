@@ -24,8 +24,8 @@ The parent commit pins the tested component pair:
 
 | Component | Commit |
 | --- | --- |
-| Host | `d37bc6f6c05fa6921f6c78aacb46221049963974` |
-| Firmware | `b467e06adfaf44d75751bba4cd18b5011b4488a3` |
+| Host | `8b18d0ad6c1b5a770fa66db3c93e54a230857a02` |
+| Firmware | `af1ff22cd11db0e8daa6a49cda8da57b064a1718` |
 
 ## Run
 
@@ -39,8 +39,14 @@ restart; use the exact serial path when more than one USB modem is connected:
 
 ```sh
 cd host
+npm run build
+herdr plugin link --enabled "$(pwd)"
 HERDR_SOCKET_PATH="$HOME/.config/herdr/herdr.sock" ZERO_KB02_PORT=/dev/cu.usbmodemzero_kb02_v11 npm start
 ```
+
+The link command is an explicit setup step that mutates the local Herdr plugin
+registry; the daemon never runs it automatically. It installs only the fixed
+local `hoki621.zero-kb02` manifest and its read-only `status` popup.
 
 Stop it with Ctrl-C. The daemon maps the six agent keys to safe `agent.focus`
 requests only after resolving the current pane for the assigned terminal. A
@@ -66,9 +72,14 @@ Do not use `git submodule update --remote`.
   port and sends a fresh handshake and complete state after reconnect.
 - Herdr restart: an externally running daemon reconnects to the configured
   Herdr socket, rebuilds the six slots, and retransmits a complete state. A
-  five-second reconcile repairs missed Herdr events.
+  five-second reconcile repairs missed Herdr events. If a popup ownership
+  record existed at disconnect, K4 remains locked rather than guessing whether
+  the old pane survived.
 - Host restart: run the same explicit `HERDR_SOCKET_PATH` and `ZERO_KB02_PORT`
-  command; generations are not reused across the new USB session.
+  command; generations are not reused across the new USB session. If
+  `owned-pane.json` exists, first verify the old popup is closed or Herdr was
+  restarted, then remove only
+  `$HOME/.local/state/herdr/plugins/hoki621.zero-kb02/owned-pane.json`.
 - Firmware recovery: stop the daemon first and follow the verified procedure in
   [`firmware/docs/hardware-diagnostics.md`](firmware/docs/hardware-diagnostics.md).
   Flashing and BOOTSEL/RST always require separate explicit permission.
@@ -78,7 +89,9 @@ Do not use `git submodule update --remote`.
 - v1 supports up to six detected Codex agents and Herdr protocol 20 as shipped
   by Herdr 0.8.2.
 - K1 sends scoped Escape to the focused mapped Codex pane. K2, K3, and K5-K8
-  focus agent slots 0-5. Encoder, joystick, K4, and K9-K12 have no Host action.
+  focus agent slots 0-5. K4 toggles only the fixed status popup pane owned by
+  the current daemon/Herdr session. Encoder, joystick, and K9-K12 have no Host
+  action.
 - macOS USB discovery is limited to `/dev/cu.usbmodem*`; set
   `ZERO_KB02_PORT` when discovery is ambiguous.
 - There is no launchd service, settings GUI, HID/Vial control, arbitrary shell

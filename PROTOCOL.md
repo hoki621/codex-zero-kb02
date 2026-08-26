@@ -31,6 +31,7 @@ OFFLINE <generation>
 HELLO ZERO-KB02 1
 PONG <sequence>
 ESC <generation> <DOWN|UP>
+POPUP <generation> <DOWN|UP>
 KEY <generation> <slot> <DOWN|UP>
 ENC <generation> <CW|CCW|DOWN|UP>
 JOY <generation> <UP|DOWN|LEFT|RIGHT>
@@ -152,6 +153,18 @@ Firmware -> Host: ESC 41827 DOWN
 Firmware -> Host: ESC 41827 UP
 ```
 
+`POPUP` reports the debounced edge of physical K4. Firmware emits one `DOWN`
+and one `UP` per physical press. On `DOWN` only, the host toggles the fixed
+`hoki621.zero-kb02` / `status` plugin pane: it opens a popup after validating
+the exact enabled local plugin, or closes only the `pane_id` returned by its
+own successful open. `UP` performs no action. The host never uses global
+`popup.close` or discovers, adopts, or closes another pane.
+
+```text
+Firmware -> Host: POPUP 41827 DOWN
+Firmware -> Host: POPUP 41827 UP
+```
+
 `KEY` reports the debounced edge of one of the six agent keys. Firmware emits
 one `DOWN` and one `UP` per physical press; the host performs focus on `DOWN`
 only.
@@ -201,12 +214,15 @@ Examples that must be ignored include:
 STATE 41827 2 WIBEU
 ESC 0 DOWN
 ESC 41827 DOWN extra
+POPUP 01 DOWN
+POPUP 41827 OPEN
 KEY 41826 2 DOWN extra
 JOY 41827 DIAGONAL
 RUN herdr focus 2
 ```
 
-`ESC 0 DOWN` has an invalid generation, and the next two examples have extra
-tokens. A syntactically valid `ESC 41826 DOWN` or `KEY 41826 2 DOWN` would
-instead be rejected as stale when the current generation is `41827`, followed
-by retransmission of the current `STATE`.
+`ESC 0 DOWN` has an invalid generation, `ESC 41827 DOWN extra` has an extra
+token, and the `POPUP` examples use a leading zero and invalid action. A
+syntactically valid `ESC 41826 DOWN`, `POPUP 41826 DOWN`, or
+`KEY 41826 2 DOWN` would instead be rejected as stale when the current
+generation is `41827`, followed by retransmission of the current `STATE`.
