@@ -30,6 +30,7 @@ OFFLINE <generation>
 # Firmware to host
 HELLO ZERO-KB02 1
 PONG <sequence>
+ESC <generation> <DOWN|UP>
 KEY <generation> <slot> <DOWN|UP>
 ENC <generation> <CW|CCW|DOWN|UP>
 JOY <generation> <UP|DOWN|LEFT|RIGHT>
@@ -142,6 +143,15 @@ then closes the port.
 
 ## Input events
 
+`ESC` reports the debounced edge of physical K1. Firmware emits one `DOWN` and
+one `UP` per physical press; the host sends Escape to the currently focused,
+mapped Codex pane on `DOWN` only.
+
+```text
+Firmware -> Host: ESC 41827 DOWN
+Firmware -> Host: ESC 41827 UP
+```
+
 `KEY` reports the debounced edge of one of the six agent keys. Firmware emits
 one `DOWN` and one `UP` per physical press; the host performs focus on `DOWN`
 only.
@@ -189,11 +199,14 @@ Examples that must be ignored include:
 
 ```text
 STATE 41827 2 WIBEU
+ESC 0 DOWN
+ESC 41827 DOWN extra
 KEY 41826 2 DOWN extra
 JOY 41827 DIAGONAL
 RUN herdr focus 2
 ```
 
-The second example is malformed because of its extra token. A syntactically
-valid `KEY 41826 2 DOWN` would instead be rejected as stale when the current
-generation is `41827`, followed by retransmission of the current `STATE`.
+`ESC 0 DOWN` has an invalid generation, and the next two examples have extra
+tokens. A syntactically valid `ESC 41826 DOWN` or `KEY 41826 2 DOWN` would
+instead be rejected as stale when the current generation is `41827`, followed
+by retransmission of the current `STATE`.
