@@ -24,7 +24,7 @@ The parent commit pins the tested component pair:
 
 | Component | Commit |
 | --- | --- |
-| Host | `3863f9162ac6e0c8922a923d065221dfe5fd43b5` |
+| Host | `d37bc6f6c05fa6921f6c78aacb46221049963974` |
 | Firmware | `b467e06adfaf44d75751bba4cd18b5011b4488a3` |
 
 ## Run
@@ -77,8 +77,8 @@ Do not use `git submodule update --remote`.
 
 - v1 supports up to six detected Codex agents and Herdr protocol 20 as shipped
   by Herdr 0.8.2.
-- Only K2, K3, and K5-K8 focus agent slots 0-5. Encoder, joystick, K1, K4, and
-  K9-K12 have no Host action in v1.
+- K1 sends scoped Escape to the focused mapped Codex pane. K2, K3, and K5-K8
+  focus agent slots 0-5. Encoder, joystick, K4, and K9-K12 have no Host action.
 - macOS USB discovery is limited to `/dev/cu.usbmodem*`; set
   `ZERO_KB02_PORT` when discovery is ambiguous.
 - There is no launchd service, settings GUI, HID/Vial control, arbitrary shell
