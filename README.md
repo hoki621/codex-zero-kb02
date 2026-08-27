@@ -24,8 +24,8 @@ The parent commit pins the tested component pair:
 
 | Component | Commit |
 | --- | --- |
-| Host | `4eaf82cd7c898a856c36abae6f378d019b74a9a4` |
-| Firmware | `9c39c5fcc5e77454b97c6ad54ba18cc6d43fac9a` |
+| Host | `f2d9b2b6afb85c9591b5c6e093ac0aae21259781` |
+| Firmware | `ec8509be565671d33765bf7c480d1857d31aa02b` |
 
 ## Run
 
@@ -93,7 +93,8 @@ Do not use `git submodule update --remote`.
   it closes any active popup, including one from another plugin, or opens the
   fixed status popup when none is open. Encoder CW/CCW changes the focused
   managed Codex CLI thread's reasoning effort by one supported level and clamps
-  at the endpoints. K9-K12 have no Host action. The joystick moves the USB HID
+  at the endpoints. K12 sends the fixed `/new` command to the focused mapped
+  Codex CLI pane. K9-K11 have no Host action. The joystick moves the USB HID
   relative pointer; its push has no action.
 - macOS USB discovery is limited to `/dev/cu.usbmodem*`; set
   `ZERO_KB02_PORT` when discovery is ambiguous.

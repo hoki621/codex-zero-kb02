@@ -32,6 +32,7 @@ HELLO ZERO-KB02 1
 PONG <sequence>
 ESC <generation> <DOWN|UP>
 POPUP <generation> <DOWN|UP>
+NEW <generation> <DOWN|UP>
 KEY <generation> <slot> <DOWN|UP>
 ENC <generation> <CW|CCW|DOWN|UP>
 JOY <generation> <UP|DOWN|LEFT|RIGHT>
@@ -167,6 +168,17 @@ Firmware -> Host: POPUP 41827 DOWN
 Firmware -> Host: POPUP 41827 UP
 ```
 
+`NEW` reports the debounced edge of physical K12. Firmware emits one `DOWN`
+and one `UP` per physical press. On `DOWN` only, the host applies the same
+focused mapped Codex pane checks as K1, rechecks focus and the current mapping
+context, then sends the fixed keys `["/", "n", "e", "w", "enter"]` in one
+`agent.send_keys` request. `UP` performs no action.
+
+```text
+Firmware -> Host: NEW 41827 DOWN
+Firmware -> Host: NEW 41827 UP
+```
+
 `KEY` reports the debounced edge of one of the six agent keys. Firmware emits
 one `DOWN` and one `UP` per physical press; the host performs focus on `DOWN`
 only.
@@ -218,13 +230,15 @@ ESC 0 DOWN
 ESC 41827 DOWN extra
 POPUP 01 DOWN
 POPUP 41827 OPEN
+NEW 01 DOWN
+NEW 41827 OPEN
 KEY 41826 2 DOWN extra
 JOY 41827 DIAGONAL
 RUN herdr focus 2
 ```
 
 `ESC 0 DOWN` has an invalid generation, `ESC 41827 DOWN extra` has an extra
-token, and the `POPUP` examples use a leading zero and invalid action. A
-syntactically valid `ESC 41826 DOWN`, `POPUP 41826 DOWN`, or
-`KEY 41826 2 DOWN` would instead be rejected as stale when the current
+token, and the `POPUP` and `NEW` examples use a leading zero and invalid action.
+A syntactically valid `ESC 41826 DOWN`, `POPUP 41826 DOWN`, `NEW 41826 DOWN`,
+or `KEY 41826 2 DOWN` would instead be rejected as stale when the current
 generation is `41827`, followed by retransmission of the current `STATE`.
