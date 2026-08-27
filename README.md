@@ -24,8 +24,8 @@ The parent commit pins the tested component pair:
 
 | Component | Commit |
 | --- | --- |
-| Host | `884354b037e6c6554cd13ee58e0118654e1913dd` |
-| Firmware | `ec8509be565671d33765bf7c480d1857d31aa02b` |
+| Host | `29c90753bf54ea15c619467b6e151757f3a4efe6` |
+| Firmware | `4d8104c5b4f3925b37394b0ca2d14c39486fc9a1` |
 
 ## Run
 
@@ -93,15 +93,16 @@ Do not use `git submodule update --remote`.
   it closes any active popup, including one from another plugin, or opens the
   fixed status popup when none is open. Encoder CW/CCW changes the focused
   managed Codex CLI thread's reasoning effort by one supported level and clamps
-  at the endpoints. K12 sends the fixed `/new` command only to the focused
-  mapped Codex CLI pane while its live status is idle or done. K9-K11 have no
-  Host action. The joystick moves the USB HID
-  relative pointer; its push has no action.
+  at the endpoints. K9 sends fixed `y` and K10 sends fixed `n` only to the
+  focused mapped Codex CLI pane while its live status is blocked. K11 remains
+  unavailable. K12 sends the fixed `/new` command only to the focused mapped
+  Codex CLI pane while its live status is idle or done. The joystick moves the
+  USB HID relative pointer; its push has no action.
 - macOS USB discovery is limited to `/dev/cu.usbmodem*`; set
   `ZERO_KB02_PORT` when discovery is ambiguous.
 - There is no launchd service, settings GUI, Vial control, arbitrary shell
-  execution, Approve/Deny, push-to-talk, model switching, desktop App control,
-  or Zed ACP support.
+  execution, persistent approval, push-to-talk, model switching, desktop App
+  control, or Zed ACP support.
 
 ## Development workflow
 

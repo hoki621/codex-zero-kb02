@@ -33,6 +33,8 @@ PONG <sequence>
 ESC <generation> <DOWN|UP>
 POPUP <generation> <DOWN|UP>
 NEW <generation> <DOWN|UP>
+APPROVE <generation> <DOWN|UP>
+REJECT <generation> <DOWN|UP>
 KEY <generation> <slot> <DOWN|UP>
 ENC <generation> <CW|CCW|DOWN|UP>
 JOY <generation> <UP|DOWN|LEFT|RIGHT>
@@ -181,6 +183,22 @@ Firmware -> Host: NEW 41827 DOWN
 Firmware -> Host: NEW 41827 UP
 ```
 
+`APPROVE` and `REJECT` report the debounced edges of physical K9 and K10.
+Firmware emits one `DOWN` and one `UP` per physical press. On `DOWN` only, the
+host requires the uniquely focused mapped Codex agent's live status to be
+`blocked`, then rechecks the same focus, terminal identity, status, mapping,
+and USB context immediately before sending exactly one
+`agent.send_keys {target: <same pane>, keys: ["y"]}` for `APPROVE` or
+`agent.send_keys {target: <same pane>, keys: ["n"]}` for `REJECT`. No other
+key or parameter is sent. `UP` performs no action. Physical K11 emits no event.
+
+```text
+Firmware -> Host: APPROVE 41827 DOWN
+Firmware -> Host: APPROVE 41827 UP
+Firmware -> Host: REJECT 41827 DOWN
+Firmware -> Host: REJECT 41827 UP
+```
+
 `KEY` reports the debounced edge of one of the six agent keys. Firmware emits
 one `DOWN` and one `UP` per physical press; the host performs focus on `DOWN`
 only.
@@ -234,13 +252,19 @@ POPUP 01 DOWN
 POPUP 41827 OPEN
 NEW 01 DOWN
 NEW 41827 OPEN
+APPROVE 01 DOWN
+APPROVE 41827 ENTER
+REJECT 01 DOWN
+REJECT 41827 ENTER
 KEY 41826 2 DOWN extra
 JOY 41827 DIAGONAL
 RUN herdr focus 2
 ```
 
 `ESC 0 DOWN` has an invalid generation, `ESC 41827 DOWN extra` has an extra
-token, and the `POPUP` and `NEW` examples use a leading zero and invalid action.
-A syntactically valid `ESC 41826 DOWN`, `POPUP 41826 DOWN`, `NEW 41826 DOWN`,
-or `KEY 41826 2 DOWN` would instead be rejected as stale when the current
-generation is `41827`, followed by retransmission of the current `STATE`.
+token, and the `POPUP`, `NEW`, `APPROVE`, and `REJECT` examples use a leading
+zero or invalid action. A syntactically valid `ESC 41826 DOWN`,
+`POPUP 41826 DOWN`, `NEW 41826 DOWN`, `APPROVE 41826 DOWN`,
+`REJECT 41826 DOWN`, or `KEY 41826 2 DOWN` would instead be rejected as stale
+when the current generation is `41827`, followed by retransmission of the
+current `STATE`.

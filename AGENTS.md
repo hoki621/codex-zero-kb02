@@ -5,7 +5,8 @@
 - Host work stays in `host/`; Firmware work stays in `firmware/`.
 - Commit and push child changes before changing the parent gitlink.
 - Use an issue branch such as `issue-5-herdr-status`; never force-push.
-- Keep v1 limited to the issue scope. Do not add Approve/Deny, push-to-talk,
+- Keep v1 limited to the issue scope. Approve/Deny is allowed only as the exact
+  fixed K9/K10 operations defined by Issue #17. Do not add push-to-talk,
   reasoning-level control, Zed ACP, HID/Vial, a settings GUI, or arbitrary shell
   execution.
 - Never flash firmware or open/control a real device unless the user explicitly
