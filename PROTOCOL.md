@@ -169,10 +169,12 @@ Firmware -> Host: POPUP 41827 UP
 ```
 
 `NEW` reports the debounced edge of physical K12. Firmware emits one `DOWN`
-and one `UP` per physical press. On `DOWN` only, the host applies the same
-focused mapped Codex pane checks as K1, rechecks focus and the current mapping
-context, then sends the fixed keys `["/", "n", "e", "w", "enter"]` in one
-`agent.send_keys` request. `UP` performs no action.
+and one `UP` per physical press. On `DOWN` only, the host requires the uniquely
+focused mapped Codex agent's live status to be `idle` or `done`, then rechecks
+the same focused terminal identity, status, and current USB context immediately
+before sending the fixed keys `["/", "n", "e", "w", "enter"]` in one
+`agent.send_keys` request. `working`, `blocked`, `unknown`, and missing statuses
+fail closed. `UP` performs no action.
 
 ```text
 Firmware -> Host: NEW 41827 DOWN
