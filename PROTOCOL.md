@@ -172,9 +172,9 @@ Firmware -> Host: POPUP 41827 UP
 and one `UP` per physical press. On `DOWN` only, the host requires the uniquely
 focused mapped Codex agent's live status to be `idle` or `done`, then rechecks
 the same focused terminal identity, status, and current USB context immediately
-before sending the fixed keys `["/", "n", "e", "w", "enter"]` in one
-`agent.send_keys` request. `working`, `blocked`, `unknown`, and missing statuses
-fail closed. `UP` performs no action.
+before sending exactly one `agent.prompt {target: <same pane>, text: "/new"}`
+request without `wait` or other parameters. `working`, `blocked`, `unknown`, and
+missing statuses fail closed. `UP` performs no action.
 
 ```text
 Firmware -> Host: NEW 41827 DOWN

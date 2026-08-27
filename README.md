@@ -24,7 +24,7 @@ The parent commit pins the tested component pair:
 
 | Component | Commit |
 | --- | --- |
-| Host | `714c10d1eba5b30fb8e34e3443eab03371e726d9` |
+| Host | `884354b037e6c6554cd13ee58e0118654e1913dd` |
 | Firmware | `ec8509be565671d33765bf7c480d1857d31aa02b` |
 
 ## Run
