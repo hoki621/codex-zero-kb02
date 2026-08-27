@@ -24,7 +24,7 @@ The parent commit pins the tested component pair:
 
 | Component | Commit |
 | --- | --- |
-| Host | `21336da9a3d2bc5d44020788c5f62b62265fe82c` |
+| Host | `ac0192aec142836fbc7fdcf6c31fa518acdead80` |
 | Firmware | `9c39c5fcc5e77454b97c6ad54ba18cc6d43fac9a` |
 
 ## Run
@@ -40,6 +40,7 @@ restart; use the exact serial path when more than one USB modem is connected:
 ```sh
 cd host
 npm run build
+codex app-server daemon start
 herdr plugin link --enabled "$(pwd)"
 HERDR_SOCKET_PATH="$HOME/.config/herdr/herdr.sock" ZERO_KB02_PORT=/dev/cu.usbmodemzero_kb02_v11 npm start
 ```
@@ -47,6 +48,8 @@ HERDR_SOCKET_PATH="$HOME/.config/herdr/herdr.sock" ZERO_KB02_PORT=/dev/cu.usbmod
 The link command is an explicit setup step that mutates the local Herdr plugin
 registry; the daemon never runs it automatically. It installs only the fixed
 local `hoki621.zero-kb02` manifest and its read-only `status` popup.
+Start managed Codex panes with `codex --remote unix://`; Encoder control reuses
+that Codex CLI 0.149.1 App Server's local Unix endpoint.
 
 Stop it with Ctrl-C. The daemon maps the six agent keys to safe `agent.focus`
 requests only after resolving the current pane for the assigned terminal. A
@@ -88,12 +91,15 @@ Do not use `git submodule update --remote`.
 - K1 sends scoped Escape to the focused mapped Codex pane. K2, K3, and K5-K8
   focus agent slots 0-5. K4 toggles the Herdr session's active popup globally:
   it closes any active popup, including one from another plugin, or opens the
-  fixed status popup when none is open. Encoder and K9-K12 have no Host action.
-  The joystick moves the USB HID relative pointer; its push has no action.
+  fixed status popup when none is open. Encoder CW/CCW changes the focused
+  managed Codex CLI thread's reasoning effort by one supported level and clamps
+  at the endpoints. K9-K12 have no Host action. The joystick moves the USB HID
+  relative pointer; its push has no action.
 - macOS USB discovery is limited to `/dev/cu.usbmodem*`; set
   `ZERO_KB02_PORT` when discovery is ambiguous.
 - There is no launchd service, settings GUI, Vial control, arbitrary shell
-  execution, Approve/Deny, push-to-talk, reasoning control, or Zed ACP support.
+  execution, Approve/Deny, push-to-talk, model switching, desktop App control,
+  or Zed ACP support.
 
 ## Development workflow
 
