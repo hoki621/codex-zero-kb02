@@ -25,7 +25,7 @@ The parent commit pins the tested component pair:
 | Component | Commit |
 | --- | --- |
 | Host | `21336da9a3d2bc5d44020788c5f62b62265fe82c` |
-| Firmware | `af1ff22cd11db0e8daa6a49cda8da57b064a1718` |
+| Firmware | `9c39c5fcc5e77454b97c6ad54ba18cc6d43fac9a` |
 
 ## Run
 
@@ -88,11 +88,11 @@ Do not use `git submodule update --remote`.
 - K1 sends scoped Escape to the focused mapped Codex pane. K2, K3, and K5-K8
   focus agent slots 0-5. K4 toggles the Herdr session's active popup globally:
   it closes any active popup, including one from another plugin, or opens the
-  fixed status popup when none is open. Encoder, joystick, and K9-K12 have no
-  Host action.
+  fixed status popup when none is open. Encoder and K9-K12 have no Host action.
+  The joystick moves the USB HID relative pointer; its push has no action.
 - macOS USB discovery is limited to `/dev/cu.usbmodem*`; set
   `ZERO_KB02_PORT` when discovery is ambiguous.
-- There is no launchd service, settings GUI, HID/Vial control, arbitrary shell
+- There is no launchd service, settings GUI, Vial control, arbitrary shell
   execution, Approve/Deny, push-to-talk, reasoning control, or Zed ACP support.
 
 ## Development workflow
