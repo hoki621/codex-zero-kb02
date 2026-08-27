@@ -1,16 +1,91 @@
 # codex-zero-kb02
 
-An unofficial zero-kb02 controller for Codex agents running in Herdr.
+zero-kb02から、Herdr上で動くCodex CLIエージェントを確認・操作するための非公式コントローラーです。
 
-This repository pins a compatible pair of independently versioned components:
+- [`host/`](https://github.com/hoki621/codex-zero-kb02-host): HerdrとUSB CDCをつなぐHost bridge
+- [`firmware/`](https://github.com/hoki621/codex-zero-kb02-firmware): zero-kb02用TinyGo firmware
 
-- [`host/`](https://github.com/hoki621/codex-zero-kb02-host): Herdr and USB CDC bridge
-- [`firmware/`](https://github.com/hoki621/codex-zero-kb02-firmware): TinyGo firmware for zero-kb02
+このプロジェクトはOpenAI、Work Louder、Herdr、Waveshare、および
+[UPSTREAMS.md](UPSTREAMS.md)に記載したupstream projectの公式製品ではなく、提携・推奨を受けたものでもありません。
 
-This project is not affiliated with or endorsed by OpenAI, Work Louder, Herdr,
-Waveshare, or the upstream projects listed in [UPSTREAMS.md](UPSTREAMS.md).
+## できること
 
-## Clone
+```mermaid
+flowchart LR
+    U[ユーザー] --> Z[zero-kb02]
+    Z -- キー / Encoder<br/>USB CDC --> H[Host bridge]
+    H <--> D[Herdr daemon]
+    D <--> C[Codex CLI panes<br/>最大6枠]
+    H -- 6枠の状態 --> Z
+    Z -- Joystick<br/>USB HID --> P[macOSのマウスポインター]
+    H -. Encoderのみ .-> A[Codex App Server]
+```
+
+Host bridgeはHerdrの状態をzero-kb02へ送り、物理操作を許可済みの固定操作だけに変換します。
+任意コマンドや任意文字列を送る機能はありません。
+
+## 物理配置と操作
+
+zero-kb02を正面から見たキー番号です。K1が左上です。
+
+```text
+┌────────┬────────┬────────┬────────┐
+│ K1     │ K2     │ K3     │ K4     │
+│ Escape │ Agent 1│ Agent 2│ Status │
+├────────┼────────┼────────┼────────┤
+│ K5     │ K6     │ K7     │ K8     │
+│ Agent 3│ Agent 4│ Agent 5│ Agent 6│
+├────────┼────────┼────────┼────────┤
+│ K9     │ K10    │ K11    │ K12    │
+│ Approve│ Reject │ 無効   │ /new   │
+└────────┴────────┴────────┴────────┘
+```
+
+| 操作 | 動作 | 動作条件 |
+| --- | --- | --- |
+| K1 | Escapeを送る | focus中かつ割り当て済みのCodex pane |
+| K2 / K3 | Agent slot 0 / 1へfocus | 対応するagentが存在する |
+| K4 | HerdrのStatus popupを開閉 | popupはHerdr session全体で1つ |
+| K5 / K6 / K7 / K8 | Agent slot 2 / 3 / 4 / 5へfocus | 対応するagentが存在する |
+| K9 | 今回だけApprove（固定キー`y`） | focus中のCodex paneが`blocked` |
+| K10 | Reject（固定キー`n`） | focus中のCodex paneが`blocked` |
+| K11 | 何もしない | v1では予約済み |
+| K12 | New Chat（固定コマンド`/new`） | focus中のCodex paneが`idle`または`done` |
+| Encoderを時計回り | reasoning effortを1段階上げる | managed Codex CLIとApp Serverが動作中 |
+| Encoderを反時計回り | reasoning effortを1段階下げる | managed Codex CLIとApp Serverが動作中 |
+| Encoderを押す | 何もしない | v1ではHost操作なし |
+| Joystickを倒す | マウスポインターを上下左右へ移動 | USB HIDとして動作 |
+| Joystickを押す | 何もしない | v1では予約済み |
+
+K9/K10は送信直前にもfocus、Codex identity、`blocked`状態、USB sessionを再確認します。
+条件が変わった場合は何も送りません。Enterや永続承認は送りません。
+
+## OLEDとLED
+
+OLEDの6枠は、K2/K3/K5〜K8が選ぶAgent slotと同じ順序です。
+
+```text
+┌────────┬────────┐
+│ slot 0 │ slot 1 │  ← K2 / K3
+├────────┼────────┤
+│ slot 2 │ slot 3 │  ← K5 / K6
+├────────┼────────┤
+│ slot 4 │ slot 5 │  ← K7 / K8
+└────────┴────────┘
+```
+
+| 表示 | 状態 |
+| --- | --- |
+| `W` | working: 作業中 |
+| `I` | idle: 入力待ち |
+| `B` | blocked: 承認・回答待ち |
+| `D` | done: 完了 |
+| `U` | unknown: 状態不明 |
+| `E` | empty: agent未割り当て |
+
+## Quick Start
+
+### 1. Cloneと依存関係の準備
 
 ```sh
 git clone --recurse-submodules https://github.com/hoki621/codex-zero-kb02.git
@@ -20,44 +95,80 @@ cd host
 npm ci
 ```
 
-The parent commit pins the tested component pair:
+このParent commitが検証済みの組み合わせを固定します。
 
 | Component | Commit |
 | --- | --- |
 | Host | `29c90753bf54ea15c619467b6e151757f3a4efe6` |
 | Firmware | `4d8104c5b4f3925b37394b0ca2d14c39486fc9a1` |
 
-## Run
+### 2. Firmwareを書き込む
 
-Flash the pinned firmware only after verifying the target device and obtaining
-explicit permission for that hardware operation. Build instructions are in
-[`firmware/README.md`](firmware/README.md).
+対象がzero-kb02であることを確認し、実機操作の明示許可を得てから実行します。
 
-Start the bridge from a normal terminal outside Herdr-managed panes. Set
-`HERDR_SOCKET_PATH` explicitly so the daemon can reconnect after a Herdr server
-restart; use the exact serial path when more than one USB modem is connected:
+```sh
+cd ../firmware
+tinygo build -o /absolute/path/zero-kb02.uf2 --target waveshare-rp2040-zero --stack-size 8kb --size short .
+tinygo flash --target waveshare-rp2040-zero --stack-size 8kb .
+```
+
+`tinygo flash`で書き込めない場合は、Host bridgeを停止してから
+[`firmware/docs/hardware-diagnostics.md`](firmware/docs/hardware-diagnostics.md)のBOOTSEL/RST手順を使います。
+
+### 3. Herdr pluginを登録する
+
+これは初回だけ必要です。ローカルの固定manifest `hoki621.zero-kb02`と、読み取り専用のStatus popupを登録します。
+
+```sh
+cd ../host
+npm run build
+herdr plugin link --enabled "$(pwd)"
+cd ..
+```
+
+このコマンドはHerdrのplugin registryを変更します。Host bridgeが自動実行することはありません。
+
+### 4. Encoderを使う場合だけApp Serverを起動する
+
+```sh
+codex app-server daemon start
+```
+
+Encoder controlはCodex CLI 0.149.1のローカルApp Serverを使います。対象のCodex CLI paneは
+`codex --remote unix://`で起動してください。
+
+`managed standalone Codex install not found`と表示される環境ではApp Serverを起動できないため、
+Encoderによるreasoning effort変更だけが利用できません。K1〜K10とK12、OLED/LED、Status popup、JoystickはApp Serverなしでも動作します。
+
+### 5. Host bridgeを起動する
+
+Herdr管理paneではなく、macOSの通常Terminalから実行します。Herdr再起動後もbridgeを残すためです。
 
 ```sh
 cd host
-npm run build
-codex app-server daemon start
-herdr plugin link --enabled "$(pwd)"
-HERDR_SOCKET_PATH="$HOME/.config/herdr/herdr.sock" ZERO_KB02_PORT=/dev/cu.usbmodemzero_kb02_v11 npm start
+HERDR_SOCKET_PATH="$HOME/.config/herdr/herdr.sock" \
+ZERO_KB02_PORT=/dev/cu.usbmodemzero_kb02_v11 \
+npm start
 ```
 
-The link command is an explicit setup step that mutates the local Herdr plugin
-registry; the daemon never runs it automatically. It installs only the fixed
-local `hoki621.zero-kb02` manifest and its read-only `status` popup.
-Start managed Codex panes with `codex --remote unix://`; Encoder control reuses
-that Codex CLI 0.149.1 App Server's local Unix endpoint.
+USB CDC deviceが1台だけなら`ZERO_KB02_PORT`は省略できます。複数ある場合は、必ず対象の
+`/dev/cu.usbmodem*`を明示してください。停止は同じTerminalで`Ctrl-C`です。
 
-Stop it with Ctrl-C. The daemon maps the six agent keys to safe `agent.focus`
-requests only after resolving the current pane for the assigned terminal. A
-daemon running inside a Herdr-managed pane cannot survive a server restart.
+### 6. HerdrでCodex CLIを使う
 
-## Update
+Herdr上でCodex CLI paneを起動すると、最大6つまでOLED/LEDへ表示されます。
+K2/K3/K5〜K8で目的のagentへfocusし、上の操作表どおりに使用します。
 
-Update only to another parent commit so the tested child pair stays intact:
+## 復旧
+
+- **USBを抜き差しした:** Host bridgeはそのままにします。指定portへ再接続し、handshake後に6枠の全状態を再送します。
+- **Herdrを再起動した:** 通常Terminal上のHost bridgeがHerdr socketへ再接続し、枠を作り直します。5秒ごとのreconcileで欠落イベントも補います。
+- **Host bridgeを再起動した:** Quick Start 5と同じ環境変数で再起動します。古いUSB sessionの入力は再利用されません。
+- **Firmwareを復旧したい:** Host bridgeを停止し、[`firmware/docs/hardware-diagnostics.md`](firmware/docs/hardware-diagnostics.md)を使います。flashとBOOTSEL/RSTには毎回明示許可が必要です。
+
+## 更新
+
+検証済みの組み合わせを崩さないため、Parent commit単位で更新します。
 
 ```sh
 git pull --ff-only
@@ -67,58 +178,25 @@ cd host
 npm ci
 ```
 
-Do not use `git submodule update --remote`.
+`git submodule update --remote`は使わないでください。
 
-## Recovery
+## 制約
 
-- USB disconnect: leave the daemon running; it retries the exact configured
-  port and sends a fresh handshake and complete state after reconnect.
-- Herdr restart: an externally running daemon reconnects to the configured
-  Herdr socket, rebuilds the six slots, and retransmits a complete state. A
-  five-second reconcile repairs missed Herdr events.
-- Host restart: run the same explicit `HERDR_SOCKET_PATH` and `ZERO_KB02_PORT`
-  command; generations are not reused across the new USB session. A stale,
-  unreachable `status.sock` is removed only if its identity is unchanged;
-  a live, replaced, or ambiguous socket remains untouched and startup fails.
-- Firmware recovery: stop the daemon first and follow the verified procedure in
-  [`firmware/docs/hardware-diagnostics.md`](firmware/docs/hardware-diagnostics.md).
-  Flashing and BOOTSEL/RST always require separate explicit permission.
+- v1は最大6つのCodex agentと、Herdr 0.8.2のprotocol 20に対応します。
+- macOSのUSB自動探索は`/dev/cu.usbmodem*`だけが対象です。
+- K4はHerdr session全体のpopupを操作するため、別pluginのpopupを閉じる場合があります。
+- launchd service、自動起動、設定GUI、Vial control、任意shell command、任意文字列、永続承認、K11 push-to-talk、model切替、Codex Desktop App、Zed ACPには対応しません。
 
-## Known constraints
+## 開発workflow
 
-- v1 supports up to six detected Codex agents and Herdr protocol 20 as shipped
-  by Herdr 0.8.2.
-- K1 sends scoped Escape to the focused mapped Codex pane. K2, K3, and K5-K8
-  focus agent slots 0-5. K4 toggles the Herdr session's active popup globally:
-  it closes any active popup, including one from another plugin, or opens the
-  fixed status popup when none is open. Encoder CW/CCW changes the focused
-  managed Codex CLI thread's reasoning effort by one supported level and clamps
-  at the endpoints. K9 sends fixed `y` and K10 sends fixed `n` only to the
-  focused mapped Codex CLI pane while its live status is blocked. K11 remains
-  unavailable. K12 sends the fixed `/new` command only to the focused mapped
-  Codex CLI pane while its live status is idle or done. The joystick moves the
-  USB HID relative pointer; its push has no action.
-- macOS USB discovery is limited to `/dev/cu.usbmodem*`; set
-  `ZERO_KB02_PORT` when discovery is ambiguous.
-- There is no launchd service, settings GUI, Vial control, arbitrary shell
-  execution, persistent approval, push-to-talk, model switching, desktop App
-  control, or Zed ACP support.
+作業は[Parent issue tracker](https://github.com/hoki621/codex-zero-kb02/issues)で管理します。Child repositoryではIssueを使いません。
 
-## Development workflow
+1. 1つのIssueを選び、指定されたrepositoryだけを変更する
+2. Child repositoryを先にcommit・pushする
+3. Issueに対応した最小の検証を行う
+4. integration時だけParentのsubmodule pointerを更新する
 
-Work is coordinated in the [parent issue tracker](https://github.com/hoki621/codex-zero-kb02/issues).
-The child repositories intentionally have Issues disabled.
+## 安全
 
-1. Pick one issue and work only in the repository named by that issue.
-2. Commit and push the child repository first.
-3. Run the issue's focused verification.
-4. Update the parent submodule pointer only during integration.
-
-Do not use `git submodule update --remote`; the parent commit is the compatibility
-record for the exact Host and Firmware commits.
-
-## Safety
-
-Do not flash firmware, open the device serial port, or send input to a Herdr pane
-without explicit user approval for that operation. Build and mock tests are safe
-defaults.
+Firmware flash、serial portのopen、実USB/device control、Herdr paneへのlive入力は、対象操作ごとにユーザーの明示許可を得てから行ってください。
+build、mock test、read-only確認は実機を操作しません。
