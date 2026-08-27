@@ -24,7 +24,7 @@ The parent commit pins the tested component pair:
 
 | Component | Commit |
 | --- | --- |
-| Host | `1b3da5645eaf0461ab3a71d162c3c4deb02fba68` |
+| Host | `21336da9a3d2bc5d44020788c5f62b62265fe82c` |
 | Firmware | `af1ff22cd11db0e8daa6a49cda8da57b064a1718` |
 
 ## Run
@@ -72,16 +72,11 @@ Do not use `git submodule update --remote`.
   port and sends a fresh handshake and complete state after reconnect.
 - Herdr restart: an externally running daemon reconnects to the configured
   Herdr socket, rebuilds the six slots, and retransmits a complete state. A
-  five-second reconcile repairs missed Herdr events. If a popup ownership
-  record existed at disconnect, K4 remains locked rather than guessing whether
-  the old pane survived.
+  five-second reconcile repairs missed Herdr events.
 - Host restart: run the same explicit `HERDR_SOCKET_PATH` and `ZERO_KB02_PORT`
   command; generations are not reused across the new USB session. A stale,
   unreachable `status.sock` is removed only if its identity is unchanged;
   a live, replaced, or ambiguous socket remains untouched and startup fails.
-  If `owned-pane.json` exists, first verify the old popup is closed or Herdr was
-  restarted, then remove only
-  `$HOME/.local/state/herdr/plugins/hoki621.zero-kb02/owned-pane.json`.
 - Firmware recovery: stop the daemon first and follow the verified procedure in
   [`firmware/docs/hardware-diagnostics.md`](firmware/docs/hardware-diagnostics.md).
   Flashing and BOOTSEL/RST always require separate explicit permission.
@@ -91,9 +86,10 @@ Do not use `git submodule update --remote`.
 - v1 supports up to six detected Codex agents and Herdr protocol 20 as shipped
   by Herdr 0.8.2.
 - K1 sends scoped Escape to the focused mapped Codex pane. K2, K3, and K5-K8
-  focus agent slots 0-5. K4 toggles only the fixed status popup pane owned by
-  the current daemon/Herdr session. Encoder, joystick, and K9-K12 have no Host
-  action.
+  focus agent slots 0-5. K4 toggles the Herdr session's active popup globally:
+  it closes any active popup, including one from another plugin, or opens the
+  fixed status popup when none is open. Encoder, joystick, and K9-K12 have no
+  Host action.
 - macOS USB discovery is limited to `/dev/cu.usbmodem*`; set
   `ZERO_KB02_PORT` when discovery is ambiguous.
 - There is no launchd service, settings GUI, HID/Vial control, arbitrary shell

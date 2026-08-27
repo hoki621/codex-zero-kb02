@@ -154,11 +154,13 @@ Firmware -> Host: ESC 41827 UP
 ```
 
 `POPUP` reports the debounced edge of physical K4. Firmware emits one `DOWN`
-and one `UP` per physical press. On `DOWN` only, the host toggles the fixed
-`hoki621.zero-kb02` / `status` plugin pane: it opens a popup after validating
-the exact enabled local plugin, or closes only the `pane_id` returned by its
-own successful open. `UP` performs no action. The host never uses global
-`popup.close` or discovers, adopts, or closes another pane.
+and one `UP` per physical press. On `DOWN` only, the host first sends global
+`popup.close {}` once. A successful close ends the action. Only exact
+`popup_not_open` causes one fixed `plugin.pane.open` with plugin
+`hoki621.zero-kb02`, entrypoint `status`, and placement `popup`; the open sends
+no target pane, workspace, or focus parameter. Other close errors do not open,
+and open errors are not retried. `UP` performs no action. Because the Herdr
+popup is session-global, K4 can close another plugin's active popup.
 
 ```text
 Firmware -> Host: POPUP 41827 DOWN
