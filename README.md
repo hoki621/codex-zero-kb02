@@ -150,9 +150,11 @@ zero-kb02用hookを追加します。実行後に`~/.codex/hooks.json`、`~/.cod
 追加された`host/dist/src/codex-hook.js`のcommandを確認し、次回Codex起動時のhook trust reviewで許可してください。
 `--dangerously-bypass-hook-trust`は使いません。
 
-このhookは`HERDR_ENV=1`、`HERDR_SOCKET_PATH`、対象paneの`HERDR_PANE_ID`がある場合だけ、Codexがstdinへ渡すexact
-`session_id`を`agent=codex`、`source=herdr:codex`として登録します。Herdr外、登録失敗、またはHostが
-UUIDv7・一意identity・loaded threadを確認できない場合、Encoder操作は何もしません。
+remote App Serverではhook自身にpane環境が渡らないため、このhookはCodexがstdinへ渡すexact `session_id`を
+developer contextへ渡します。最初のturnは固定コマンドを1回だけ実行し、`HERDR_ENV=1`、socket、pane ID、
+UUIDv7の`CODEX_THREAD_ID`と`session_id`の完全一致を確認してから、`agent=codex`、`source=herdr:codex`として
+登録します。Herdr外、入力不正、不一致、登録失敗、またはHostが一意identity・loaded threadを確認できない場合、
+Encoder操作は何もしません。
 
 ### 毎回の起動
 
@@ -194,7 +196,7 @@ Herdr上でCodex CLI paneを起動すると、最大6つまでOLED/LEDへ表示�
 npm --prefix host run codex-herdr -- --remote unix://
 ```
 
-最初のturnでSessionStart hookがexact thread identityをpaneへ自動登録します。`/status`でのID確認や
+最初のturnでSessionStart hookのdeveloper contextに従う固定コマンドがexact thread identityをpaneへ自動登録します。`/status`でのID確認や
 `herdr pane report-agent-session`の手動実行は不要です。K2/K3/K5〜K8で目的のagentへfocusし、
 上の操作表どおりに使用します。
 
