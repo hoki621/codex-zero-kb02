@@ -138,14 +138,19 @@ Encoderが操作するCodex threadをpaneへ自動登録するため、Herdr 0.8
 
 ```sh
 herdr integration install codex
+cd host
+npm run install-codex-hook
+cd ..
 herdr integration status
 ```
 
 installerは既存の`~/.codex/hooks.json`を置換せず、既存hookを残したままHerdrの`SessionStart` hookを追加します。
-実行後に`~/.codex/hooks.json`と`~/.codex/herdr-agent-state.sh`を確認し、次回Codex起動時のhook trust reviewで
-内容を確認して許可してください。`--dangerously-bypass-hook-trust`は使いません。
+続く`npm run install-codex-hook`も既存hookを残し、Codex remoteで`transcript_path`がnullまたはない場合を扱う
+zero-kb02用hookを追加します。実行後に`~/.codex/hooks.json`、`~/.codex/herdr-agent-state.sh`、および
+追加された`host/dist/src/codex-hook.js`のcommandを確認し、次回Codex起動時のhook trust reviewで許可してください。
+`--dangerously-bypass-hook-trust`は使いません。
 
-このhookは`HERDR_ENV=1`と対象paneの`HERDR_PANE_ID`がある場合だけ、Codexがstdinへ渡すexact
+このhookは`HERDR_ENV=1`、`HERDR_SOCKET_PATH`、対象paneの`HERDR_PANE_ID`がある場合だけ、Codexがstdinへ渡すexact
 `session_id`を`agent=codex`、`source=herdr:codex`として登録します。Herdr外、登録失敗、またはHostが
 UUIDv7・一意identity・loaded threadを確認できない場合、Encoder操作は何もしません。
 
