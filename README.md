@@ -103,7 +103,7 @@ npm ci
 
 | Component | Commit |
 | --- | --- |
-| Host | `b4170f3f9abce05a3a59feae0e533b3ed0816e88` |
+| Host | `affb34659bd12c7c3d900c0a37e6ea11db6f5c21` |
 | Firmware | `4d8104c5b4f3925b37394b0ca2d14c39486fc9a1` |
 
 #### 2. Firmwareを書き込む
@@ -132,29 +132,26 @@ cd ..
 
 このコマンドはHerdrのplugin registryを変更します。Host bridgeが自動実行することはありません。
 
-#### 4. Codex SessionStart連携を登録する
+#### 過去版のSessionStart hookを削除する（更新時のみ）
 
-Encoderが操作するCodex threadをpaneへ自動登録するため、Herdr 0.8.2のbuilt-in integrationを1回だけ導入します。
+過去版で`npm run install-codex-hook`を実行した場合だけ、Codexを終了してから`~/.codex/hooks.json`をバックアップし、
+`SessionStart`内の`command`が次の形になっているhookオブジェクトだけをテキストエディタで削除します。
 
 ```sh
-herdr integration install codex
-cd host
-npm run install-codex-hook
-cd ..
-herdr integration status
+cp -ip "$HOME/.codex/hooks.json" "$HOME/.codex/hooks.json.before-zero-kb02-manual"
 ```
 
-installerは既存の`~/.codex/hooks.json`を置換せず、既存hookを残したままHerdrの`SessionStart` hookを追加します。
-続く`npm run install-codex-hook`も既存hookを残し、Codex remoteで`transcript_path`がnullまたはない場合を扱う
-zero-kb02用hookを追加します。実行後に`~/.codex/hooks.json`、`~/.codex/herdr-agent-state.sh`、および
-追加された`host/dist/src/codex-hook.js`のcommandを確認し、次回Codex起動時のhook trust reviewで許可してください。
-`--dangerously-bypass-hook-trust`は使いません。
+```text
+node '/absolute/path/to/codex-zero-kb02/host/dist/src/codex-hook.js'
+```
 
-remote App Serverではhook自身にpane環境が渡らないため、このhookはCodexがstdinへ渡すexact `session_id`を
-developer contextへ渡します。最初のturnは固定コマンドを1回だけ実行し、`HERDR_ENV=1`、socket、pane ID、
-UUIDv7の`CODEX_THREAD_ID`と`session_id`の完全一致を確認してから、`agent=codex`、`source=herdr:codex`として
-登録します。Herdr外、入力不正、不一致、登録失敗、またはHostが一意identity・loaded threadを確認できない場合、
-Encoder操作は何もしません。
+`SessionStart`配列全体やSerena・Herdrなど他のhookは削除しないでください。保存後、JSONが壊れていないことを確認します。
+
+```sh
+python3 -m json.tool "$HOME/.codex/hooks.json" >/dev/null
+```
+
+新規セットアップではCodex hookの導入・削除は不要です。
 
 ### 毎回の起動
 
@@ -168,8 +165,7 @@ codex app-server daemon start
 
 すでに起動中の場合に`alreadyRunning`と表示されるのは正常です。
 
-Encoder controlはCodex CLI 0.149.1または0.150.1のローカルApp Serverを使います。対象のCodex CLI paneは
-下記の`codex-herdr` wrapperで起動してください。
+Encoder controlはCodex CLI 0.149.1または0.150.1のローカルApp Serverを使います。
 
 `managed standalone Codex install not found`と表示される環境ではApp Serverを起動できないため、
 Encoderによるreasoning effort変更だけが利用できません。K1〜K10とK12、OLED/LED、Status popup、JoystickはApp Serverなしでも動作します。
@@ -190,19 +186,25 @@ USB CDC deviceが1台だけなら`ZERO_KB02_PORT`は省略できます。複数�
 
 #### 3. HerdrでCodex CLIを使う
 
-Herdr上でCodex CLI paneを起動すると、最大6つまでOLED/LEDへ表示されます。Encoderを使うpaneは次のコマンドで起動します。
+Herdr上でCodex CLI paneを起動すると、最大6つまでOLED/LEDへ表示されます。Encoderを使うpaneも通常のremote CLIで起動します。
 
 ```sh
-npm --prefix host run codex-herdr -- --remote unix://
+codex --remote unix://
 ```
 
-最初のturnでSessionStart hookのdeveloper contextに従う固定コマンドがexact thread identityをpaneへ自動登録します。`/status`でのID確認や
-`herdr pane report-agent-session`の手動実行は不要です。K2/K3/K5〜K8で目的のagentへfocusし、
-上の操作表どおりに使用します。
+新しいCodexセッションごとに、次の順でexact identityを登録します。`/new`でセッションを作り直した場合も同じ手順を繰り返します。
 
-wrapperはdocumented `include_only`へexact `HERDR_ENV`、`HERDR_PANE_ID`、`HERDR_SOCKET_PATH`だけを追加し、
-同じ3つの`set` subkeyだけをoverrideします。既存の継承・除外・他の`set`値は変更しません。Codex 0.150.1で
-子環境へ値を戻すshell snapshotはこの起動だけ無効化し、`~/.codex/config.toml`も変更しません。
+1. Codexで`/status`を実行し、表示されたUUIDv7のSession IDをそのまま控えます。
+2. 登録対象が現在のHerdr paneであることを確認し、Codex起動前のpane shellで`printf '%s\n' "$HERDR_PANE_ID"`を実行して控えたpane ID（例: `wR:pA`）と一致することを確認します。控えていない場合は推測せず、このCodexを終了してpane IDを確認してから起動し直し、`/status`からやり直します。
+3. 次の1コマンドで、例のpane IDとSession IDを実際の値へ置き換えて登録します。`agent`と`source`は変更しません。
+
+   ```sh
+   herdr pane report-agent-session 'wR:pA' --source herdr:codex --agent codex --agent-session-id '01a048f7-edca-7fc0-98c4-1a032d9d5b0c'
+   ```
+
+4. `herdr agent list`を実行し、対象paneの`agent_session`が`/status`のSession IDと完全一致することを確認します。一致しない、複数候補がある、またはthreadがApp Serverにloadedでない場合、Encoder操作は何もしません。
+
+登録確認後、K2/K3/K5〜K8で目的のagentへfocusし、上の操作表どおりに使用します。
 
 ## 復旧
 
