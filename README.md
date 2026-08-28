@@ -167,7 +167,7 @@ codex app-server daemon start
 すでに起動中の場合に`alreadyRunning`と表示されるのは正常です。
 
 Encoder controlはCodex CLI 0.149.1または0.150.1のローカルApp Serverを使います。対象のCodex CLI paneは
-`codex --remote unix://`で起動してください。
+下記の`codex-herdr` wrapperで起動してください。
 
 `managed standalone Codex install not found`と表示される環境ではApp Serverを起動できないため、
 Encoderによるreasoning effort変更だけが利用できません。K1〜K10とK12、OLED/LED、Status popup、JoystickはApp Serverなしでも動作します。
@@ -191,12 +191,16 @@ USB CDC deviceが1台だけなら`ZERO_KB02_PORT`は省略できます。複数�
 Herdr上でCodex CLI paneを起動すると、最大6つまでOLED/LEDへ表示されます。Encoderを使うpaneは次のコマンドで起動します。
 
 ```sh
-codex --remote unix://
+npm --prefix host run codex-herdr -- --remote unix:// -C ..
 ```
 
 最初のturnでSessionStart hookがexact thread identityをpaneへ自動登録します。`/status`でのID確認や
 `herdr pane report-agent-session`の手動実行は不要です。K2/K3/K5〜K8で目的のagentへfocusし、
 上の操作表どおりに使用します。
+
+wrapperは現在の`core`継承、Browser/Codex/Node/Sky allowlist、AWS/Azure/token/secret/key除外を維持したまま、
+この起動だけexact `HERDR_ENV`、`HERDR_PANE_ID`、`HERDR_SOCKET_PATH`を追加します。Codex 0.150.1で
+子環境へ値を戻すshell snapshotはこの起動だけ無効化し、`~/.codex/config.toml`は変更しません。
 
 ## 復旧
 
