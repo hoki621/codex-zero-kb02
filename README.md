@@ -134,7 +134,7 @@ cd ..
 codex app-server daemon start
 ```
 
-Encoder controlはCodex CLI 0.149.1のローカルApp Serverを使います。対象のCodex CLI paneは
+Encoder controlはCodex CLI 0.149.1または0.150.1のローカルApp Serverを使います。対象のCodex CLI paneは
 `codex --remote unix://`で起動してください。
 
 `managed standalone Codex install not found`と表示される環境ではApp Serverを起動できないため、
