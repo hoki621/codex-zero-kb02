@@ -103,7 +103,7 @@ npm ci
 
 | Component | Commit |
 | --- | --- |
-| Host | `a60efe2c49d7ea042c023415fb7057707598e047` |
+| Host | `b4170f3f9abce05a3a59feae0e533b3ed0816e88` |
 | Firmware | `4d8104c5b4f3925b37394b0ca2d14c39486fc9a1` |
 
 #### 2. Firmwareを書き込む
