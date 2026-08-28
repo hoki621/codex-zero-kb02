@@ -103,7 +103,7 @@ npm ci
 
 | Component | Commit |
 | --- | --- |
-| Host | `c376238e169a122aada7287fa6d91924c1b5c3cb` |
+| Host | `37434371ba9c69f67f0ac9dc2540a1a4f6c944cf` |
 | Firmware | `4d8104c5b4f3925b37394b0ca2d14c39486fc9a1` |
 
 #### 2. Firmwareを書き込む
@@ -131,6 +131,23 @@ cd ..
 ```
 
 このコマンドはHerdrのplugin registryを変更します。Host bridgeが自動実行することはありません。
+
+#### 4. Codex SessionStart連携を登録する
+
+Encoderが操作するCodex threadをpaneへ自動登録するため、Herdr 0.8.2のbuilt-in integrationを1回だけ導入します。
+
+```sh
+herdr integration install codex
+herdr integration status
+```
+
+installerは既存の`~/.codex/hooks.json`を置換せず、既存hookを残したままHerdrの`SessionStart` hookを追加します。
+実行後に`~/.codex/hooks.json`と`~/.codex/herdr-agent-state.sh`を確認し、次回Codex起動時のhook trust reviewで
+内容を確認して許可してください。`--dangerously-bypass-hook-trust`は使いません。
+
+このhookは`HERDR_ENV=1`と対象paneの`HERDR_PANE_ID`がある場合だけ、Codexがstdinへ渡すexact
+`session_id`を`agent=codex`、`source=herdr:codex`として登録します。Herdr外、登録失敗、またはHostが
+UUIDv7・一意identity・loaded threadを確認できない場合、Encoder操作は何もしません。
 
 ### 毎回の起動
 
@@ -172,7 +189,9 @@ Herdr上でCodex CLI paneを起動すると、最大6つまでOLED/LEDへ表示�
 codex --remote unix://
 ```
 
-K2/K3/K5〜K8で目的のagentへfocusし、上の操作表どおりに使用します。
+最初のturnでSessionStart hookがexact thread identityをpaneへ自動登録します。`/status`でのID確認や
+`herdr pane report-agent-session`の手動実行は不要です。K2/K3/K5〜K8で目的のagentへfocusし、
+上の操作表どおりに使用します。
 
 ## 復旧
 
