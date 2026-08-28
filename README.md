@@ -191,7 +191,7 @@ USB CDC deviceが1台だけなら`ZERO_KB02_PORT`は省略できます。複数�
 Herdr上でCodex CLI paneを起動すると、最大6つまでOLED/LEDへ表示されます。Encoderを使うpaneは次のコマンドで起動します。
 
 ```sh
-npm --prefix host run codex-herdr -- --remote unix:// -C ..
+npm --prefix host run codex-herdr -- --remote unix://
 ```
 
 最初のturnでSessionStart hookがexact thread identityをpaneへ自動登録します。`/status`でのID確認や
