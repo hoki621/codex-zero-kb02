@@ -103,7 +103,7 @@ npm ci
 
 | Component | Commit |
 | --- | --- |
-| Host | `512f079aac15bab6ea4268f712c3737e182fe603` |
+| Host | `a60efe2c49d7ea042c023415fb7057707598e047` |
 | Firmware | `4d8104c5b4f3925b37394b0ca2d14c39486fc9a1` |
 
 #### 2. Firmwareを書き込む
@@ -198,9 +198,9 @@ npm --prefix host run codex-herdr -- --remote unix:// -C ..
 `herdr pane report-agent-session`の手動実行は不要です。K2/K3/K5〜K8で目的のagentへfocusし、
 上の操作表どおりに使用します。
 
-wrapperは現在の`core`継承、Browser/Codex/Node/Sky allowlist、AWS/Azure/token/secret/key除外を維持したまま、
-この起動だけexact `HERDR_ENV`、`HERDR_PANE_ID`、`HERDR_SOCKET_PATH`を追加します。Codex 0.150.1で
-子環境へ値を戻すshell snapshotはこの起動だけ無効化し、`~/.codex/config.toml`は変更しません。
+wrapperはdocumented `include_only`へexact `HERDR_ENV`、`HERDR_PANE_ID`、`HERDR_SOCKET_PATH`だけを追加し、
+同じ3つの`set` subkeyだけをoverrideします。既存の継承・除外・他の`set`値は変更しません。Codex 0.150.1で
+子環境へ値を戻すshell snapshotはこの起動だけ無効化し、`~/.codex/config.toml`も変更しません。
 
 ## 復旧
 
