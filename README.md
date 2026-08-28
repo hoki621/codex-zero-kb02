@@ -83,9 +83,13 @@ OLEDの6枠は、K2/K3/K5〜K8が選ぶAgent slotと同じ順序です。
 | `U` | unknown: 状態不明 |
 | `E` | empty: agent未割り当て |
 
-## Quick Start
+## セットアップと起動
 
-### 1. Cloneと依存関係の準備
+### 初回セットアップ
+
+次の1〜3は、最初のセットアップ時だけ実行します。Firmwareを更新・復旧する場合を除き、毎回やり直す必要はありません。
+
+#### 1. Cloneと依存関係の準備
 
 ```sh
 git clone --recurse-submodules https://github.com/hoki621/codex-zero-kb02.git
@@ -99,10 +103,10 @@ npm ci
 
 | Component | Commit |
 | --- | --- |
-| Host | `29c90753bf54ea15c619467b6e151757f3a4efe6` |
+| Host | `c376238e169a122aada7287fa6d91924c1b5c3cb` |
 | Firmware | `4d8104c5b4f3925b37394b0ca2d14c39486fc9a1` |
 
-### 2. Firmwareを書き込む
+#### 2. Firmwareを書き込む
 
 対象がzero-kb02であることを確認し、実機操作の明示許可を得てから実行します。
 
@@ -115,7 +119,7 @@ tinygo flash --target waveshare-rp2040-zero --stack-size 8kb .
 `tinygo flash`で書き込めない場合は、Host bridgeを停止してから
 [`firmware/docs/hardware-diagnostics.md`](firmware/docs/hardware-diagnostics.md)のBOOTSEL/RST手順を使います。
 
-### 3. Herdr pluginを登録する
+#### 3. Herdr pluginを登録する
 
 これは初回だけ必要です。ローカルの固定manifest `hoki621.zero-kb02`と、読み取り専用のStatus popupを登録します。
 
@@ -128,11 +132,17 @@ cd ..
 
 このコマンドはHerdrのplugin registryを変更します。Host bridgeが自動実行することはありません。
 
-### 4. Encoderを使う場合だけApp Serverを起動する
+### 毎回の起動
+
+zero-kb02をUSB接続し、次の1〜3を順番に実行します。
+
+#### 1. Encoderを使う場合だけApp Serverを起動する
 
 ```sh
 codex app-server daemon start
 ```
+
+すでに起動中の場合に`alreadyRunning`と表示されるのは正常です。
 
 Encoder controlはCodex CLI 0.149.1または0.150.1のローカルApp Serverを使います。対象のCodex CLI paneは
 `codex --remote unix://`で起動してください。
@@ -140,7 +150,7 @@ Encoder controlはCodex CLI 0.149.1または0.150.1のローカルApp Serverを�
 `managed standalone Codex install not found`と表示される環境ではApp Serverを起動できないため、
 Encoderによるreasoning effort変更だけが利用できません。K1〜K10とK12、OLED/LED、Status popup、JoystickはApp Serverなしでも動作します。
 
-### 5. Host bridgeを起動する
+#### 2. Host bridgeを起動する
 
 Herdr管理paneではなく、macOSの通常Terminalから実行します。Herdr再起動後もbridgeを残すためです。
 
@@ -154,16 +164,21 @@ npm start
 USB CDC deviceが1台だけなら`ZERO_KB02_PORT`は省略できます。複数ある場合は、必ず対象の
 `/dev/cu.usbmodem*`を明示してください。停止は同じTerminalで`Ctrl-C`です。
 
-### 6. HerdrでCodex CLIを使う
+#### 3. HerdrでCodex CLIを使う
 
-Herdr上でCodex CLI paneを起動すると、最大6つまでOLED/LEDへ表示されます。
+Herdr上でCodex CLI paneを起動すると、最大6つまでOLED/LEDへ表示されます。Encoderを使うpaneは次のコマンドで起動します。
+
+```sh
+codex --remote unix://
+```
+
 K2/K3/K5〜K8で目的のagentへfocusし、上の操作表どおりに使用します。
 
 ## 復旧
 
 - **USBを抜き差しした:** Host bridgeはそのままにします。指定portへ再接続し、handshake後に6枠の全状態を再送します。
 - **Herdrを再起動した:** 通常Terminal上のHost bridgeがHerdr socketへ再接続し、枠を作り直します。5秒ごとのreconcileで欠落イベントも補います。
-- **Host bridgeを再起動した:** Quick Start 5と同じ環境変数で再起動します。古いUSB sessionの入力は再利用されません。
+- **Host bridgeを再起動した:** 「毎回の起動 2」と同じ環境変数で再起動します。古いUSB sessionの入力は再利用されません。
 - **Firmwareを復旧したい:** Host bridgeを停止し、[`firmware/docs/hardware-diagnostics.md`](firmware/docs/hardware-diagnostics.md)を使います。flashとBOOTSEL/RSTには毎回明示許可が必要です。
 
 ## 更新
