@@ -103,7 +103,7 @@ npm ci
 
 | Component | Commit |
 | --- | --- |
-| Host | `affb34659bd12c7c3d900c0a37e6ea11db6f5c21` |
+| Host | `8e2c300bd49dc74086fd018e69ac4afb2e3fe2c9` |
 | Firmware | `4d8104c5b4f3925b37394b0ca2d14c39486fc9a1` |
 
 #### 2. Firmwareを書き込む
@@ -126,6 +126,7 @@ tinygo flash --target waveshare-rp2040-zero --stack-size 8kb .
 ```sh
 cd ../host
 npm run build
+npm link
 herdr plugin link --enabled "$(pwd)"
 cd ..
 ```
@@ -157,15 +158,10 @@ python3 -m json.tool "$HOME/.codex/hooks.json" >/dev/null
 
 zero-kb02をUSB接続し、次の1〜3を順番に実行します。
 
-#### 1. Encoderを使う場合だけApp Serverを起動する
-
-```sh
-codex app-server daemon start
-```
-
-すでに起動中の場合に`alreadyRunning`と表示されるのは正常です。
+#### 1. Encoderを使う場合
 
 Encoder controlはCodex CLI 0.149.1または0.150.1のローカルApp Serverを使います。
+App Serverは手順3の`codex-micro`が必要時に起動します。
 
 `managed standalone Codex install not found`と表示される環境ではApp Serverを起動できないため、
 Encoderによるreasoning effort変更だけが利用できません。K1〜K10とK12、OLED/LED、Status popup、JoystickはApp Serverなしでも動作します。
@@ -186,25 +182,16 @@ USB CDC deviceが1台だけなら`ZERO_KB02_PORT`は省略できます。複数�
 
 #### 3. HerdrでCodex CLIを使う
 
-Herdr上でCodex CLI paneを起動すると、最大6つまでOLED/LEDへ表示されます。Encoderを使うpaneも通常のremote CLIで起動します。
+Herdr上でCodex CLI paneを起動すると、最大6つまでOLED/LEDへ表示されます。Encoderを使うpaneは次の1コマンドで起動します。
 
 ```sh
-codex --remote unix://
+codex-micro
 ```
 
-新しいCodexセッションごとに、次の順でexact identityを登録します。`/new`でセッションを作り直した場合も同じ手順を繰り返します。
-
-1. Codexで`/status`を実行し、表示されたUUIDv7のSession IDをそのまま控えます。
-2. 登録対象が現在のHerdr paneであることを確認し、Codex起動前のpane shellで`printf '%s\n' "$HERDR_PANE_ID"`を実行して控えたpane ID（例: `wR:pA`）と一致することを確認します。控えていない場合は推測せず、このCodexを終了してpane IDを確認してから起動し直し、`/status`からやり直します。
-3. 次の1コマンドで、例のpane IDとSession IDを実際の値へ置き換えて登録します。`agent`と`source`は変更しません。
-
-   ```sh
-   herdr pane report-agent-session 'wR:pA' --source herdr:codex --agent codex --agent-session-id '01a048f7-edca-7fc0-98c4-1a032d9d5b0c'
-   ```
-
-4. `herdr agent list`を実行し、対象paneの`agent_session`が`/status`のSession IDと完全一致することを確認します。一致しない、複数候補がある、またはthreadがApp Serverにloadedでない場合、Encoder操作は何もしません。
-
-登録確認後、K2/K3/K5〜K8で目的のagentへfocusし、上の操作表どおりに使用します。
+`codex-micro`はApp Server通信を透過中継し、`thread/start`、`thread/resume`、
+`thread/fork`の応答に含まれるUUIDv7をrequest IDで対応付け、現在のHerdr paneへ
+自動登録します。`/new`後も自動で再登録します。pane IDやthread IDを推測せず、
+値が不正・曖昧な場合は登録もEncoder操作も行いません。
 
 ## 復旧
 
