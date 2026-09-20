@@ -99,11 +99,12 @@ cd host
 npm ci
 ```
 
-このParent commitが検証済みの組み合わせを固定します。
+このParent commitは次のソースの組み合わせを固定します。HostのPC側試験は完了しています。
+Firmwareは変更しておらず、この組み合わせの実機受入は[Issue #32](https://github.com/hoki621/codex-zero-kb02/issues/32)で実施します。
 
 | Component | Commit |
 | --- | --- |
-| Host | `8e2c300bd49dc74086fd018e69ac4afb2e3fe2c9` |
+| Host | `85e06ac721f981b392f5a3953ce22aefe13b3533` |
 | Firmware | `4d8104c5b4f3925b37394b0ca2d14c39486fc9a1` |
 
 #### 2. Firmwareを書き込む
@@ -160,11 +161,17 @@ zero-kb02をUSB接続し、次の1〜3を順番に実行します。
 
 #### 1. Encoderを使う場合
 
-Encoder controlはCodex CLI 0.149.1または0.150.1のローカルApp Serverを使います。
-App Serverは手順3の`codex-micro`が必要時に起動します。
+Homebrew caskのCodexを用意し、通常Terminalで専用App Serverを起動したままにします。
 
-`managed standalone Codex install not found`と表示される環境ではApp Serverを起動できないため、
-Encoderによるreasoning effort変更だけが利用できません。K1〜K10とK12、OLED/LED、Status popup、JoystickはApp Serverなしでも動作します。
+```sh
+brew install --cask codex   # 未導入の場合だけ
+codex-micro doctor
+codex-micro server
+```
+
+CLIとApp Serverは同じbrew管理の実体を使用します。`codex-micro doctor`でパス・版・専用socketを確認できます。
+`server`はforegroundで動作し、多重起動を拒否します。standalone用daemonの起動や既存インストールの削除は行いません。
+App Serverがない場合はEncoderのreasoning変更のみ利用できません。
 
 #### 2. Host bridgeを起動する
 
@@ -188,7 +195,7 @@ Herdr上でCodex CLI paneを起動すると、最大6つまでOLED/LEDへ表示�
 codex-micro
 ```
 
-`codex-micro`はApp Server通信を透過中継し、`thread/start`、`thread/resume`、
+`codex-micro`は専用App ServerへWebSocketメッセージを中継し、`thread/start`、`thread/resume`、
 `thread/fork`の応答に含まれるUUIDv7をrequest IDで対応付け、現在のHerdr paneへ
 自動登録します。`/new`後も自動で再登録します。pane IDやthread IDを推測せず、
 値が不正・曖昧な場合は登録もEncoder操作も行いません。
@@ -198,6 +205,8 @@ codex-micro
 - **USBを抜き差しした:** Host bridgeはそのままにします。指定portへ再接続し、handshake後に6枠の全状態を再送します。
 - **Herdrを再起動した:** 通常Terminal上のHost bridgeがHerdr socketへ再接続し、枠を作り直します。5秒ごとのreconcileで欠落イベントも補います。
 - **Host bridgeを再起動した:** 「毎回の起動 2」と同じ環境変数で再起動します。古いUSB sessionの入力は再利用されません。
+- **Codexをbrewで更新した:** remote CLIを終了し、専用サーバーのTerminalでCtrl-C後に`codex-micro server`を再実行します。その後Herdrで`codex-micro resume`を起動します。Host bridgeの再起動はApp Serverを停止しません。
+- **専用サーバーの異常終了後に起動できない:** `codex-micro doctor`と[Hostの復旧手順](host/README.md#pc-setup-and-startup)で所有PID/socketを確認します。稼働中のサーバーのディレクトリを削除しないでください。
 - **Firmwareを復旧したい:** Host bridgeを停止し、[`firmware/docs/hardware-diagnostics.md`](firmware/docs/hardware-diagnostics.md)を使います。flashとBOOTSEL/RSTには毎回明示許可が必要です。
 
 ## 更新
@@ -216,10 +225,30 @@ npm ci
 
 ## 制約
 
-- v1は最大6つのCodex agentと、Herdr 0.8.2のprotocol 20に対応します。
+- v1は最大6つのCodex agentを扱います。HerdrはJSON APIの必須フィールドを検証し、内部protocol番号だけでは拒否しません。Herdr 0.9.0の生成schemaを参照し、mockで互換性を確認しています。
+- Codexはbrew版0.155.1を隔離環境で検証済みです。必要な実験APIが欠ける版ではEncoder処理を停止して理由を記録します。
+- K9/K10の対応承認画面の検証は[Issue #25](https://github.com/hoki621/codex-zero-kb02/issues/25)で未完了です。現行の`blocked`判定だけでは質問待ちと承認待ちを区別できません。
 - macOSのUSB自動探索は`/dev/cu.usbmodem*`だけが対象です。
 - K4はHerdr session全体のpopupを操作するため、別pluginのpopupを閉じる場合があります。
 - launchd service、自動起動、設定GUI、Vial control、任意shell command、任意文字列、永続承認、K11 push-to-talk、model切替、Codex Desktop App、Zed ACPには対応しません。
+
+## キーボードなしで行える確認
+
+```sh
+cd host
+npm ci
+npm run typecheck
+npm test
+npm run dry-run -- WIBDUE
+npm run smoke:codex
+```
+
+`smoke:codex`はbrew版App Serverを一時CODEX_HOMEで起動し、初回発言前のephemeral会話でreasoningを1段階変更します。
+モデルへの発言・実Herdrへの入力・USB接続は行いません。試験終了時に専用プロセスと一時領域を削除します。
+
+Hostの50テスト、typecheck、clean build、dry-run、brew版0.155.1の隔離API試験が成功しています。
+実Herdrの対話画面、物理キー、Encoder実回転、OLED/LED、USB抜き差し、flashは未実施です。
+ライブラリ中心のFirmware・新USB契約・本人の作業手順は[計画 #34](https://github.com/hoki621/codex-zero-kb02/issues/34)を参照してください。
 
 ## 開発workflow
 
