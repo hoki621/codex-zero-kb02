@@ -1,270 +1,105 @@
-# Host-Firmware CDC protocol v1
+# USB CDC protocol — major 2
 
-Status: v1. This file is the sole contract between `host/` and `firmware/`.
-Protocol changes must update this document and focused parser tests in both
-child repositories.
+この仕様はHostと本人が実装するTinyGo Firmwareの共通契約です。
+Firmwareは入力番号を送り、Hostが操作の意味を決めます。Joystickは標準HID mouseで直接相対移動を送り、CDCには送りません。
 
-## Framing and grammar
+**major 1と非互換です。既存のFirmware（`4d8104c`）はmajor 1のため、このHostとは接続できません。**
+旧形式を自動解釈しません。[旧仕様](docs/protocol-v1.md)は旧Firmwareを調べるための記録です。
 
-- The transport is USB CDC carrying one ASCII message per line.
-- Each line, including its terminating LF (`0x0a`), is at most 128 bytes.
-  Senders use LF. Receivers may also accept CRLF and discard the CR.
-- A message contains printable ASCII (`0x20` through `0x7e`) only. Tokens are
-  separated by one space, with no leading or trailing spaces.
-- Command names and enum values are uppercase and case-sensitive.
-- Decimal integers have no sign or leading zeroes, except the value `0`.
-- `generation` is a decimal integer from 1 through 18446744073709551615.
-- `sequence` is a decimal integer from 0 through 4294967295.
-- A receiver processes a message only after receiving its complete LF-terminated
-  line. Partial lines have no effect.
+## フレームと数値
 
-The fixed v1 messages are:
+- ASCII `0x20..0x7e`、単一空白区切り、大文字、LF終端。受信はCRLFも許可。
+- **終端を含め128 byte以下**。LFなら本文127、CRLFなら本文126 byte以下。
+- 空行、不正文字、余分な空白・引数、未知command、不正値は行全体を捨てる。状態も通信生存時刻も更新しない。
+- 過長行は次のLFまで捨て、次の行から復帰する。受信バッファを無限に増やさない。
+- unsigned整数は`0`または先頭ゼロなしの十進数。符号・小数・指数を許可しない。
+- `generation`: 1..18446744073709551615（uint64）。大小比較せず一致だけを使う。
+- `sequence`: 0..4294967295（uint32）、上限の次は0。
+- `key`: 1..12。`selected`: 0..5、または未選択`-`。
+- `delta`: -32..-1または1..32。`+1`、`-0`、`01`は不正。
+- USB CDCは115200 baud指定。Hostはユーザー指定の完全なportだけを排他openし、自動探索しない。
 
-```text
-# Host to firmware
-HELLO HOST 1
-STATE <generation> <selected> <states>
-PING <sequence>
-OFFLINE <generation>
+## 起動と切断
 
-# Firmware to host
-HELLO ZERO-KB02 1
-PONG <sequence>
-ESC <generation> <DOWN|UP>
-POPUP <generation> <DOWN|UP>
-NEW <generation> <DOWN|UP>
-APPROVE <generation> <DOWN|UP>
-REJECT <generation> <DOWN|UP>
-KEY <generation> <slot> <DOWN|UP>
-ENC <generation> <CW|CCW|DOWN|UP>
-JOY <generation> <UP|DOWN|LEFT|RIGHT>
-```
+1. Deviceは起動時offline。Hostはopen後`HELLO HOST 2`を送る。
+2. Deviceは対応majorなら`HELLO ZERO-KB02 2`を返す。Hostの応答待ちは1秒。
+3. 不一致major/不正応答/timeoutならHostはcloseする。KEY/ENCも操作も受け付けない。
+4. 成功後、Hostは新しいgenerationの全snapshot（STATEまたはOFFLINE）とPINGを送る。
+5. Deviceは有効なSTATEを受けてonlineになる。HELLOだけでは入力を送らない。
+6. USB再接続、Host再起動、slotのterminal割当変更、online/offline変更でHostはgenerationを更新する。状態文字や選択枠だけの変化では更新しない。
+7. Deviceはgeneration変更時に未送信入力・回転量を破棄する。既に押されているキーは一度離すまでDOWNを送らない。起動時も同じ。古い押下を新しい操作として再送しない。
+8. Hostは切断時に入力contextを失効させ、同じ指定portへ1秒後から再接続する。復帰時には全snapshotを送る。
 
-`slot` and a numeric `selected` are decimal integers from `0` through `5`.
-`selected` may instead be `-` when no slot is selected. `states` is exactly six
-characters, one per slot from 0 through 5:
+## Host → Device
 
-| Code | Meaning |
+| 行 | 意味 |
 | --- | --- |
-| `W` | working |
-| `I` | idle |
-| `B` | blocked |
-| `D` | done |
-| `U` | unknown |
-| `E` | empty; no agent is assigned to the slot |
+| `HELLO HOST 2` | 新しいhandshake。Deviceは未送信入力を破棄しofflineへ戻る |
+| `STATE <generation> <selected> <states>` | 6枠全体のsnapshot。statesは`WIBDUE`の各文字を6個 |
+| `OFFLINE <generation>` | Herdrの状態を取得できない。入力送信を止め、offline表示 |
+| `PING <sequence>` | 同じsequenceをPONGで返す |
 
-`STATE` is always a complete snapshot. Differential updates are not part of v1.
-The host sends it when the snapshot changes and at least once every five
-seconds while Herdr is available.
+`W` working、`I` idle、`B` blocked（質問待ちも含む）、`D` done、`U` unknown、`E` empty。
+selectedが指す枠はEであってはならない。DeviceはそのようなSTATEを行全体として拒否する。
+STATEは変更時と5秒ごとに全体を送る。OFFLINEでもheartbeatは続ける。
+有効なHELLO/STATE/OFFLINE/PINGを最後に受けてから12秒でDeviceはofflineに戻り、入力queueを破棄する。
+HostはPINGを最大1個だけ未応答にし、そのsequenceに一致するPONGが12秒以内に来なければ切断する（検査間隔最大250ms）。
 
-## Handshake and versioning
+## Device → Host
 
-1. After opening a CDC candidate, the host sends `HELLO HOST 1` and does not
-   send any other command until the handshake succeeds.
-2. Firmware receiving that exact line replies `HELLO ZERO-KB02 1`, enters the
-   connected-but-offline state, and waits for `STATE` or `OFFLINE`.
-3. The host accepts the port only after receiving that exact reply. It then
-   sends a complete `STATE`, or `OFFLINE` if Herdr is unavailable.
-4. Firmware emits input events only after receiving `STATE` for the current
-   connection.
+| 行 | 意味 |
+| --- | --- |
+| `HELLO ZERO-KB02 2` | handshake応答。接続中に再受信した場合HostはDevice再起動として再接続 |
+| `KEY <generation> <key> DOWN` | debounce済みの新しい押下 |
+| `KEY <generation> <key> UP` | release。Hostの操作は行わない |
+| `ENC <generation> <delta>` | 正=時計回り、負=反時計回り。1 detent=1段階 |
+| `PONG <sequence>` | PINGへの応答 |
 
-The final integer in each `HELLO` is the protocol major. A receiver that does
-not support the received major must not process any non-`HELLO` message on that
-connection. Firmware remains offline and replies with its supported
-`HELLO ZERO-KB02 1`; the host treats any reply other than that exact v1 line as
-an incompatible or unrelated device and closes the port. Neither side falls
-back to another major.
+Hostはonlineかつ最新generationのKEY/ENCだけを扱う。古い世代は捨てて最新snapshotを再送する。
+同じキーの連続DOWNは最初だけ受け付け、UPで解除する。長押しリピートはない。
+Encoderは最大32段階を処理待ちにでき、超過は理由を記録して破棄する。
+focus/thread/USB contextが変わった場合、待機回転を破棄する。動作の自動再試行はしない。
+Firmwareは通信待ちでscanを止めず、最新表示への集約と有限の入力queueを使う。queue超過時は古い入力を再送せずofflineへ戻り、再handshakeを要求する。
 
-Receiving a valid host `HELLO` at any time starts a new protocol session:
-firmware discards its prior generation, replies with its `HELLO`, enters the
-connected-but-offline state, and waits for a new `STATE` or `OFFLINE`.
+| 物理キー | Host動作 |
+| --- | --- |
+| 1 | focus中の割当済みCodexへEscape |
+| 2, 3, 5, 6, 7, 8 | slot 0, 1, 2, 3, 4, 5へfocus |
+| 4 | Herdr session共通Status popup |
+| 9, 10 | 対応する単独のcommand承認を確認できたときだけ固定y/nを1回 |
+| 11 | 未割当 |
+| 12 | focus中のidle/done Codexへ固定/new |
 
-## State and generation
+Encoder push・Joystick pushは送信しない。FirmwareはEscape/y/n等をHID keyboardとして送信しない。
 
-The host owns `generation`. It chooses a fresh nonzero value for every protocol
-session and a new value whenever any slot's agent binding changes. Status-only
-changes, selection changes, and periodic retransmission may keep the same
-generation. Firmware treats the value as an opaque token and copies the most
-recent online `STATE` generation into every input event.
+## 相互実装のテスト例
 
-The host accepts an input event only when all of these are true:
-
-1. the handshake is complete;
-2. Herdr is online and the last state sent was `STATE`;
-3. the event generation exactly equals the generation in the host's current
-   complete slot mapping; and
-4. every other field is valid for that event.
-
-Otherwise the host discards the event without invoking a Herdr operation.
-In particular, an event is stale after a slot binding change, `OFFLINE`, USB
-reconnect, firmware re-handshake, or host restart. After rejecting a well-formed
-stale event, the host retransmits the current complete `STATE` when online or
-the current `OFFLINE` when offline. It does not reuse a generation while events
-from an earlier mapping or connection may still be buffered.
-
-`OFFLINE <generation>` invalidates the previous online state. The host uses a
-new generation, firmware displays offline, clears its selected slot and slot
-states, and stops emitting input events until a later `STATE` arrives.
-
-## Heartbeat and recovery
-
-After handshake, the host sends `PING <sequence>` at least once every five
-seconds. Firmware immediately answers `PONG` with the identical sequence.
-Sequence wraps from `4294967295` to `0`.
-
-- Firmware enters offline state and stops emitting events if it receives no
-  valid host message for 12 seconds.
-- Host closes and reopens the port if it receives no matching `PONG` for 12
-  seconds. Unsolicited or non-matching `PONG` messages do not acknowledge a
-  heartbeat.
-- A valid host message resets the firmware timeout. A matching `PONG` resets
-  the host timeout. Invalid lines reset neither timeout.
-- If Herdr disconnects while CDC remains connected, the host sends `OFFLINE`
-  with a new generation. After Herdr recovers it sends a complete `STATE` with
-  another new generation.
-
-USB connection or either process restarting uses this recovery sequence:
+以下の行末にはLFを付けます。正常例:
 
 ```text
-Host -> Firmware: HELLO HOST 1
-Firmware -> Host: HELLO ZERO-KB02 1
-Host -> Firmware: STATE 41827 2 WIBDUE
-Host -> Firmware: PING 0
-Firmware -> Host: PONG 0
+HELLO HOST 2
+HELLO ZERO-KB02 2
+STATE 7 0 WIBDUE
+PING 0
+PONG 0
+KEY 7 2 DOWN
+KEY 7 2 UP
+ENC 7 -3
+STATE 7 - EEEEEE
+OFFLINE 8
 ```
 
-No earlier state or event is replayed across the handshake.
+Device側の拒否例: `HELLO HOST 1`（非互換）、`STATE 0 0 WIBDUE`、`STATE 7 6 WIBDUE`、
+`STATE 7 5 WIBDUE`（E選択）、`STATE 7 - WIBDU`（5枠）、`STATE 7 - WIBDUX`、`OFFLINE 07`、`PING -1`。
+Host側の正常/異常入力は[実行されるベクトル一覧](host/test/protocol-vectors.ts)を正とします。
+128 byte境界、分割/連結、CRLF、不正文字、再接続、heartbeatは[通信テスト](host/test/cdc-usb.test.ts)で検証します。
 
-Herdr becoming unavailable without a CDC disconnect is explicit:
-
-```text
-Host -> Firmware: OFFLINE 41828
+```sh
+cd host
+npm test
+npm run device:check -- input
+npm run device:check -- display
+npm run device:check -- faults
 ```
 
-A major mismatch never reaches normal traffic. For example, firmware receiving
-`HELLO HOST 2` remains offline and replies `HELLO ZERO-KB02 1`; a v2-only host
-then closes the port.
-
-## Input events
-
-`ESC` reports the debounced edge of physical K1. Firmware emits one `DOWN` and
-one `UP` per physical press; the host sends Escape to the currently focused,
-mapped Codex pane on `DOWN` only.
-
-```text
-Firmware -> Host: ESC 41827 DOWN
-Firmware -> Host: ESC 41827 UP
-```
-
-`POPUP` reports the debounced edge of physical K4. Firmware emits one `DOWN`
-and one `UP` per physical press. On `DOWN` only, the host first sends global
-`popup.close {}` once. A successful close ends the action. Only exact
-`popup_not_open` causes one fixed `plugin.pane.open` with plugin
-`hoki621.zero-kb02`, entrypoint `status`, and placement `popup`; the open sends
-no target pane, workspace, or focus parameter. Other close errors do not open,
-and open errors are not retried. `UP` performs no action. Because the Herdr
-popup is session-global, K4 can close another plugin's active popup.
-
-```text
-Firmware -> Host: POPUP 41827 DOWN
-Firmware -> Host: POPUP 41827 UP
-```
-
-`NEW` reports the debounced edge of physical K12. Firmware emits one `DOWN`
-and one `UP` per physical press. On `DOWN` only, the host requires the uniquely
-focused mapped Codex agent's live status to be `idle` or `done`, then rechecks
-the same focused terminal identity, status, and current USB context immediately
-before sending exactly one `agent.prompt {target: <same pane>, text: "/new"}`
-request without `wait` or other parameters. `working`, `blocked`, `unknown`, and
-missing statuses fail closed. `UP` performs no action.
-
-```text
-Firmware -> Host: NEW 41827 DOWN
-Firmware -> Host: NEW 41827 UP
-```
-
-`APPROVE` and `REJECT` report the debounced edges of physical K9 and K10.
-Firmware emits one `DOWN` and one `UP` per physical press. On `DOWN` only, the
-host requires the uniquely focused mapped Codex agent's live status to be
-`blocked`, then rechecks the same focus, terminal identity, status, mapping,
-and USB context immediately before sending exactly one
-`agent.send_keys {target: <same pane>, keys: ["y"]}` for `APPROVE` or
-`agent.send_keys {target: <same pane>, keys: ["n"]}` for `REJECT`. No other
-key or parameter is sent. `UP` performs no action. Physical K11 emits no event.
-
-```text
-Firmware -> Host: APPROVE 41827 DOWN
-Firmware -> Host: APPROVE 41827 UP
-Firmware -> Host: REJECT 41827 DOWN
-Firmware -> Host: REJECT 41827 UP
-```
-
-`KEY` reports the debounced edge of one of the six agent keys. Firmware emits
-one `DOWN` and one `UP` per physical press; the host performs focus on `DOWN`
-only.
-
-```text
-Firmware -> Host: KEY 41827 2 DOWN
-Firmware -> Host: KEY 41827 2 UP
-```
-
-`ENC` reports one encoder detent or a debounced encoder-button edge. Each
-detent produces one `CW` or `CCW`; each button press produces one `DOWN` and one
-`UP`.
-
-```text
-Firmware -> Host: ENC 41827 CW
-Firmware -> Host: ENC 41827 DOWN
-Firmware -> Host: ENC 41827 UP
-```
-
-`JOY` reports a single cardinal direction after the joystick crosses its
-calibrated threshold from neutral. Firmware chooses one axis for a diagonal and
-does not repeat a direction until the stick returns to neutral.
-
-```text
-Firmware -> Host: JOY 41827 LEFT
-```
-
-The mapping from these fixed events to allowlisted Herdr operations belongs to
-the host. Firmware cannot name a Herdr method or shell command.
-
-## Invalid input
-
-A malformed line is any line with invalid ASCII, spacing, token count, integer,
-enum, or field range. An unknown command is also malformed. Each receiver:
-
-- discards the complete line without changing state or performing an action;
-- continues reading later lines on the same connection; and
-- sends no error response.
-
-If LF has not appeared within the first 128 bytes, the receiver discards bytes
-through the next LF using bounded memory. The oversized line has no partial
-effect. A partial line is discarded when CDC disconnects.
-
-Examples that must be ignored include:
-
-```text
-STATE 41827 2 WIBEU
-ESC 0 DOWN
-ESC 41827 DOWN extra
-POPUP 01 DOWN
-POPUP 41827 OPEN
-NEW 01 DOWN
-NEW 41827 OPEN
-APPROVE 01 DOWN
-APPROVE 41827 ENTER
-REJECT 01 DOWN
-REJECT 41827 ENTER
-KEY 41826 2 DOWN extra
-JOY 41827 DIAGONAL
-RUN herdr focus 2
-```
-
-`ESC 0 DOWN` has an invalid generation, `ESC 41827 DOWN extra` has an extra
-token, and the `POPUP`, `NEW`, `APPROVE`, and `REJECT` examples use a leading
-zero or invalid action. A syntactically valid `ESC 41826 DOWN`,
-`POPUP 41826 DOWN`, `NEW 41826 DOWN`, `APPROVE 41826 DOWN`,
-`REJECT 41826 DOWN`, or `KEY 41826 2 DOWN` would instead be rejected as stale
-when the current generation is `41827`, followed by retransmission of the
-current `STATE`.
+すべてmockが既定です。実機の段階別試験は[本人向け手順](docs/firmware-handoff.md)へ進んでください。
