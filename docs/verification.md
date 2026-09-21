@@ -61,7 +61,7 @@ npm run dry-run -- WIBDUE
 npm run device:check -- doctor
 npm run smoke:codex
 cd ..
-sh docs/library-probe/check.sh
+mise exec -- sh docs/library-probe/check.sh
 ```
 
 実機の合格条件は[本人向け手順](firmware-handoff.md)を使用してください。

@@ -1,10 +1,13 @@
 #!/bin/sh
 # Build only in a fresh temporary directory. Never flash or open a device.
 set -eu
+check_versions() {
 case "$(tinygo version)" in
   'tinygo version 0.40.1 '*'go1.25.13 '*) ;;
   *) echo 'Run mise install and use TinyGo 0.40.1 / Go 1.25.13 from the parent repository.' >&2; exit 1 ;;
 esac
+}
+check_versions
 tinygo version
 go version
 source_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
@@ -16,6 +19,7 @@ git -C "$probe_dir/tinygo-keyboard" checkout --quiet cf173e98f60329b7f7feba94146
 git -C "$probe_dir/tinygo-keyboard" apply --check "$source_dir/../patches/tinygo-keyboard-input-only.patch"
 git -C "$probe_dir/tinygo-keyboard" apply "$source_dir/../patches/tinygo-keyboard-input-only.patch"
 cd "$probe_dir"
+check_versions
 tinygo list -target waveshare-rp2040-zero -tags kb02_inputonly -deps . > deps.txt
 if grep -Fxq machine/usb/hid/keyboard deps.txt; then
   echo 'Unexpected HID keyboard dependency' >&2

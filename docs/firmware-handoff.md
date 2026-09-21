@@ -11,7 +11,7 @@ Firmware本体は自分で実装します。PC側のコード・確認CLI・通�
 3. 親へ戻り、下記の依存検証を実行します。これは一時フォルダでビルドするだけです。
 
    ```sh
-   sh docs/library-probe/check.sh
+   mise exec -- sh docs/library-probe/check.sh
    ```
 
 4. スクリプトが示す一時フォルダと`deps.txt`を確認します。HID mouseは含まれ、`machine/usb/hid/keyboard`は含まれません。**probe.uf2は書き込まないでください。製品Firmwareではありません。**

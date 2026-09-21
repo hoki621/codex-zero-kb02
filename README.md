@@ -50,7 +50,7 @@ npm run device:check -- display
 npm run device:check -- faults
 npm run dry-run -- WIBDUE
 cd ..
-sh docs/library-probe/check.sh
+mise exec -- sh docs/library-probe/check.sh
 ```
 
 device:checkはmockが既定です。`raw`は初期入力ログ用、`doctor`は実行ファイル・版・socket・通信majorの診断です。
