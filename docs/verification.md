@@ -29,16 +29,17 @@
 
 ## 公開整理版 / Publication cleanup
 
-Firmwareの変更はDTR遷移の重複除去、定数・Go形式・理由コメントの整理です。Hostは出典コメントと文書の整理です。この整理版はビルドで確認し、実機へ再書き込みしていません。 / Firmware changes simplify DTR transitions and clarify constants, formatting and rationale. Host changes clarify provenance and docs. The cleanup is build-tested, not reflashed.
+Firmwareの変更はDTR遷移の重複除去、定数・Go形式・理由コメントの整理です。Hostは出典コメントと文書の整理に加え、共有socket・会話登録を既存plugin保存場所に移し、TMPDIR指定を不要にしました。この整理版はビルドで確認し、実機へ再書き込みしていません。 / Firmware changes simplify DTR transitions and clarify constants, formatting and rationale. Host changes clarify provenance/docs and move shared socket/registrations to the existing plugin state directory, removing the TMPDIR override. The cleanup is build-tested, not reflashed.
 
 公開整理版の固定commit / Pinned cleanup commits:
 
 - Firmware: `126c8a122831ae2d79b2c6ee9f89a131a7c62a3d`
-- Host: `b3fa5086ce4e826e2e5482c79af6b77d59a85759`
+- Host: `346222c88a5d44f15b7c7829ca455ff47f39f1ca`
 - TinyGo 0.40.1 / Go 1.25.13 build: flash 40,576 bytes / RAM 14,588 bytes
 - UF2 SHA-256: `6269fbe60a612a1cede0e4ec71231b931cda741c7462e764f510897fc545582d`
-- Host typecheck・64 tests・mock dry-run、Firmware test/vet、input-only dependency check: PASS
-- Remote fresh clone + recursive submodules: Host npm ci/64 tests、Firmware test/vet/build: PASS。同じUF2 SHA-256 / identical UF2 SHA-256.
+- Host typecheck・65 tests・mock dry-run、Firmware test/vet、input-only dependency check: PASS
+- 共有パスの回帰試験 / Shared-path regression: TMPDIRを変えてもsocket/会話登録が一致し、serverとCLIで異なるTMPDIRでも接続に成功 / matching paths and successful server/CLI connection with different TMPDIR values.
+- Remote fresh clone + recursive submodules: Host npm ci/65 tests、Firmware test/vet/build: PASS。同じUF2 SHA-256 / identical UF2 SHA-256.
 
 検証コマンド / Checks:
 

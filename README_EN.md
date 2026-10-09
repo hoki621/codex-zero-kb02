@@ -8,7 +8,7 @@ A personal macOS controller that displays and operates up to six Codex CLI sessi
 
 ![Architecture](assets/architecture-en.drawio.svg)
 
-Firmware handles input and display. The Host checks Herdr state and the operation target. Encoder changes to reasoning effort go through a dedicated Codex App Server. The SVG can be edited in draw.io.
+This deployment diagram shows execution locations and data flow. Boxes represent devices/software; dashed enclosures show where they run. Solid arrows indicate input/operation direction, and dashed arrows indicate state notifications. Firmware handles input/display, Host checks targets and handles communication, and the dedicated Codex App Server receives reasoning settings. The SVG is editable in draw.io.
 
 ## Setup
 
@@ -29,27 +29,29 @@ See [Firmware setup](firmware/README.md) for building and flashing. Host and Fir
 
 ## Run
 
-Run these commands from the repository root. Use the same `TMPDIR=/tmp` in every terminal: otherwise terminals inside and outside Herdr may look for the dedicated server in different directories.
+Start Herdr normally. Run these commands from the repository root. Device-controlled Codex sessions must use `codex-micro.js`: this launcher starts brew Codex and registers the exact thread/pane. Ordinary `codex` remains usable, but those sessions are not registered for reasoning or approval controls. No `TMPDIR` override is needed.
 
 1. Keep the dedicated server running in a normal Terminal:
 
    ```sh
-   TMPDIR=/tmp mise exec -- node host/dist/src/codex-micro.js server
+   mise exec -- node host/dist/src/codex-micro.js server
    ```
 
 2. Start a CLI in each Herdr pane, up to six. Append `resume` to resume a conversation.
 
    ```sh
-   TMPDIR=/tmp mise exec -- node host/dist/src/codex-micro.js
+   mise exec -- node host/dist/src/codex-micro.js
    ```
 
 3. Start the bridge in another normal Terminal. Specify the exact device port and close other serial monitors.
 
    ```sh
-   TMPDIR=/tmp HERDR_SOCKET_PATH="$HOME/.config/herdr/herdr.sock" \
+   HERDR_SOCKET_PATH="$HOME/.config/herdr/herdr.sock" \
    ZERO_KB02_PORT=/dev/cu.usbmodemzero_kb02_v21 \
    mise exec -- node host/dist/src/main.js
    ```
+
+When updating from the TMPDIR-based version, finish the old CLI sessions and stop the bridge/server before restarting in this order. Existing processes are not migrated or stopped automatically.
 
 Stop with Ctrl-C. Finish all connected CLI sessions before stopping the server. After a brew Codex upgrade, restart the server and resume each CLI session.
 

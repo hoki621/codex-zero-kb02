@@ -8,7 +8,7 @@ zero-kb02（RP2040）のキー・Encoder・OLED/LEDで、macOSのHerdr上にあ�
 
 ![構成図](assets/architecture-ja.drawio.svg)
 
-Firmwareは入力と表示を担当し、HostがHerdrの状態・操作対象を確認します。Encoderによる推論の強さの変更は、専用Codex App Serverを通して行います。構成図のSVGはdraw.ioで編集できます。
+図は実行場所とデータの流れを示す配置図です。四角は実機・ソフトウェア、破線の囲みは実行場所を表します。実線矢印は入力・操作、破線矢印は状態通知の向きです。Firmwareは入力と表示、Hostは対象確認と通信を担当し、推論設定は専用Codex App Serverへ送ります。SVGはdraw.ioで編集できます。
 
 ## 初期設定
 
@@ -29,27 +29,29 @@ Firmwareのビルド・書き込みは[日本語手順](firmware/README_JA.md)�
 
 ## 起動
 
-以下はリポジトリのルートから実行します。各Terminalで同じ`TMPDIR=/tmp`を指定してください。Herdr内と外で一時ディレクトリが異なると、専用serverを見つけられません。
+Herdrは通常どおり起動してください。以下はリポジトリのルートから実行します。デバイスと連携するCodexは`codex-micro.js`から起動します。このLauncherがbrew版Codexを起動して会話とペインを登録します。通常の`codex`も使えますが、その会話は推論の強さ・承認/拒否の操作対象になりません。`TMPDIR`の指定は不要です。
 
 1. 通常Terminalで専用serverを起動し、そのままにします。
 
    ```sh
-   TMPDIR=/tmp mise exec -- node host/dist/src/codex-micro.js server
+   mise exec -- node host/dist/src/codex-micro.js server
    ```
 
 2. Herdrの各ペインで起動します（最大6つ）。再開は末尾に`resume`を付けます。
 
    ```sh
-   TMPDIR=/tmp mise exec -- node host/dist/src/codex-micro.js
+   mise exec -- node host/dist/src/codex-micro.js
    ```
 
 3. 別の通常Terminalでbridgeを起動します。実機の完全なport名を指定し、ほかのserial monitorは閉じます。
 
    ```sh
-   TMPDIR=/tmp HERDR_SOCKET_PATH="$HOME/.config/herdr/herdr.sock" \
+   HERDR_SOCKET_PATH="$HOME/.config/herdr/herdr.sock" \
    ZERO_KB02_PORT=/dev/cu.usbmodemzero_kb02_v21 \
    mise exec -- node host/dist/src/main.js
    ```
+
+旧TMPDIR版から更新する際は、利用中のCLI・bridge・serverを終了してからこの順で再起動してください。自動移行・自動停止は行いません。
 
 終了はCtrl-Cです。専用serverは利用中のCLIをすべて終了してから止めてください。brewでCodexを更新した場合も、serverを再起動して各ペインを再開します。
 
