@@ -130,8 +130,7 @@ Herdr 0.9.0のJSON schemaを参照し、必須フィールドを検証してい�
 Codex 0.155.1と0.160.0の隔離API試験が成功しています。現在の親gitlinkが参照するHostは承認対応版を0.155.1に限定します。[Host PR #3](https://github.com/hoki621/codex-zero-kb02-host/pull/3)と[親PR #38](https://github.com/hoki621/codex-zero-kb02/pull/38)を適用すると0.160.0も対応し、process-onlyのkeymap指定でy/nを固定します。
 設定ファイルは変更しません。K4のpopupはHerdr session共通で、別pluginのpopupを閉じる場合があります。
 
-実Herdrの対話画面、USB列挙、物理入力、OLED/LED、抜き差し、flashは**NOT RUN**です。
-[実機受入 #32](https://github.com/hoki621/codex-zero-kb02/issues/32)で確認します。PC試験の成功を実機成功として扱いません。
+major 2 Firmwareのflash、USB列挙、物理入力、OLED/LED、基本的な抜き差しは[実機検証記録](docs/verification.md)の範囲で確認しました。実Herdrの対話画面とHost接続中の復旧は[実機受入 #32](https://github.com/hoki621/codex-zero-kb02/issues/32)で確認します。親mainのFirmware gitlinkはまだ旧major 1です。
 launchd、自動起動、設定GUI、Vial制御、任意入力/任意shell、永続承認、PTT、model切替、Codex Desktop/Zed対応は範囲外です。
 
 開発は親Issueで管理し、childを先にcommit/pushしてから親gitlinkを更新します。Firmwareの実機受入はコードのビルド結果と分けて記録します。

@@ -76,7 +76,7 @@ Codex試験は既存設定・履歴を使わない一時CODEX_HOMEの専用プ�
 - 最終確認とHerdr送信は別APIです。確認から送信までの変化を原子的に排除するAPIはありません。
 - 標準CDCHID descriptor内の未使用keyboard項目は残ります。Vial/keyboard handlerがないことと、実USB列挙の確認を区別します。
 - GPIO方向、Joystick方向、LED順とUSBの起動復帰は上記の実機観察で確認しました。Encoderの定量一致、ADC生値、表示負荷下の入力、Host接続中のUSB復旧は未確認です。
-- C4の実機受入済みgitlink・製品Firmwareのfresh build・デモ3回/録画は#32後です。PC成果物の統合を実機受入済み統合とは呼びません。
+- 製品Firmwareのfresh buildは上記の固定版で成功しました。C4の実機受入済みgitlink・デモ3回/録画は#32後です。PC成果物の統合を実機受入済み統合とは呼びません。
 
 ## 再現コマンド
 
