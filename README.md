@@ -2,48 +2,64 @@
 
 [English](README_EN.md)
 
-zero-kb02（RP2040）のキー・Encoder・OLED/LEDで、macOSのHerdr上にある最大6つのCodex CLIを表示・操作する個人用デバイスです。Joystickはマウスポインターを動かします。
+zero-kb02を、macOSのHerdrで動くCodex CLI用のコントローラーにするプロジェクトです。最大6つの会話の状態をOLEDとLEDに表示し、キーで会話を切り替え、Encoderで推論の強さを変更できます。Joystickはマウスポインターの移動に使えます。
 
-[デモ動画（X）](https://x.com/hoki621/status/2093605017819423047) · [検証結果](docs/verification.md)
+[デモ動画（X）](https://x.com/hoki621/status/2093605017819423047)
+
+## システム構成
 
 ![構成図](assets/architecture-ja.drawio.svg)
 
-図は実行場所とデータの流れを示す配置図です。四角は実機・ソフトウェア、破線の囲みは実行場所を表します。実線矢印は入力・操作、破線矢印は状態通知の向きです。Firmwareは入力と表示、Hostは対象確認と通信を担当し、推論設定は専用Codex App Serverへ送ります。SVGはdraw.ioで編集できます。
+zero-kb02上のFirmwareが入力と表示を担当します。Mac上のHost bridgeがデバイスとHerdrを接続し、Codex App Serverを通じて会話の推論設定を変更します。
+
+## 用意するもの
+
+- zero-kb02とUSBデータケーブル
+- macOSと[Herdr](https://herdr.dev/)
+- [Homebrew](https://brew.sh/)、[mise](https://mise.jdx.dev/)、Codex CLIを利用できるアカウント
+
+Node.js・Go・TinyGoは`mise.toml`でバージョンを指定しています。Codex CLIはHomebrew版を使用します。
 
 ## 初期設定
 
-必要なもの: macOS、zero-kb02、Herdr、Homebrew、mise。導入済みの環境はそのまま使えます。Node.js・Go・TinyGoの版は`mise.toml`で固定しています。Codex CLIはHomebrew版を使用します。
+1. Herdr、Homebrew、miseをインストールし、次のコマンドでソースと必要なツールを取得します。
 
-```sh
-git clone --recurse-submodules https://github.com/hoki621/codex-zero-kb02.git
-cd codex-zero-kb02
-mise install                 # 指定版が未導入の場合
-mise exec -- sh -c 'cd host && npm ci && npm run build'
-brew install --cask codex    # 未導入の場合
-herdr plugin link --enabled "$PWD/host"
-```
+   ```sh
+   brew install --cask codex
+   git clone --recurse-submodules https://github.com/hoki621/codex-zero-kb02.git
+   cd codex-zero-kb02
+   mise install
+   mise exec -- sh -c 'cd host && npm ci && npm run build'
+   ```
 
-Herdrの導入は[公式サイト](https://herdr.dev/)を参照してください。Codex CLIの認証を済ませてから起動します。Launcherはbrew版を選び、既存のCodex設定ファイルを変更しません。
+2. Codex CLIの認証と、Herdrの状態一覧pluginの登録を行います。
 
-Firmwareのビルド・書き込みは[日本語手順](firmware/README_JA.md)へ。HostとFirmwareはUSB CDC **major 2**の組合せが必要です。旧major 1とは接続できません。
+   ```sh
+   codex login
+   herdr plugin link --enabled "$PWD/host"
+   ```
+
+3. [Firmwareの手順](firmware/README_JA.md)に沿ってビルド・書き込みを行い、zero-kb02をUSBで接続します。
 
 ## 起動
 
-Herdrは通常どおり起動してください。以下はリポジトリのルートから実行します。デバイスと連携するCodexは`codex-micro.js`から起動します。このLauncherがbrew版Codexを起動して会話とペインを登録します。通常の`codex`も使えますが、その会話は推論の強さ・承認/拒否の操作対象になりません。`TMPDIR`の指定は不要です。
+Herdrを起動してから、以下をリポジトリのルートで実行します。それぞれ別のTerminalまたはペインを使ってください。
 
-1. 通常Terminalで専用serverを起動し、そのままにします。
+1. 通常のTerminalでCodex App Serverを起動し、そのままにします。会話の実行と推論設定を管理するサービスです。
 
    ```sh
    mise exec -- node host/dist/src/codex-micro.js server
    ```
 
-2. Herdrの各ペインで起動します（最大6つ）。再開は末尾に`resume`を付けます。
+2. Herdrのペインで、デバイスと連携するCodex CLIを起動します。会話ごとに1つのペインを使います（最大6つ）。
 
    ```sh
    mise exec -- node host/dist/src/codex-micro.js
    ```
 
-3. 別の通常Terminalでbridgeを起動します。実機の完全なport名を指定し、ほかのserial monitorは閉じます。
+   この起動用プログラムがCodexの会話とHerdrのペインを結びつけます。推論変更・承認操作を使う会話は、通常の`codex`ではなくこのコマンドで起動してください。会話の再開は末尾に`resume`を付けます。別のプロジェクトで使う場合は、そのディレクトリへ移動し、`host/dist/src/codex-micro.js`を絶対パスで指定します。
+
+3. 別の通常TerminalでHost bridgeを起動します。USBポート名は自分のデバイスのものに置き換え、ほかのserial monitorは閉じてください。ポートの候補は`ls /dev/cu.usbmodem*`で確認できます。
 
    ```sh
    HERDR_SOCKET_PATH="$HOME/.config/herdr/herdr.sock" \
@@ -51,9 +67,9 @@ Herdrは通常どおり起動してください。以下はリポジトリのル
    mise exec -- node host/dist/src/main.js
    ```
 
-旧TMPDIR版から更新する際は、利用中のCLI・bridge・serverを終了してからこの順で再起動してください。自動移行・自動停止は行いません。
+   `HERDR_SOCKET_PATH`はHerdrとの接続先、`ZERO_KB02_PORT`はzero-kb02のUSB接続先です。
 
-終了はCtrl-Cです。専用serverは利用中のCLIをすべて終了してから止めてください。brewでCodexを更新した場合も、serverを再起動して各ペインを再開します。
+終了するときは、各Codex CLIとHost bridgeを終了してから、App ServerのTerminalでCtrl-Cを押します。
 
 ## 操作
 
@@ -62,29 +78,38 @@ Herdrは通常どおり起動してください。以下はリポジトリのル
 | 入力 | 動作 |
 | --- | --- |
 | K1 | 選択中のCodexへEscape |
-| K2 / K3 / K5 / K6 / K7 / K8 | Agent 1〜6のペインへ切替 |
+| K2 / K3 / K5 / K6 / K7 / K8 | 会話1〜6のペインへ切替 |
 | K4 | 状態一覧を開く・閉じる |
-| K9 / K10 | 確認できた単独command承認へ固定の承認・拒否を各1回 |
+| K9 / K10 | コマンド実行の承認・拒否（対応版のみ） |
 | K11 | 未割当 |
 | K12 | 入力待ち・完了のCodexで新しい会話 |
 | Encoder | 時計回りで推論の強さを上げ、反時計回りで下げる |
-| Joystick | ポインター移動。両pushは未割当 |
+| Joystick | マウスポインターの移動。押し込み操作は未割当 |
 
-OLEDはAgent 1/2、3/4、5/6の2列3段。W=作業中、I=入力待ち、B=承認・回答待ち、D=完了、U=不明、E=空枠です。
+OLEDは会話1/2、3/4、5/6の2列3段です。W=作業中、I=入力待ち、B=承認・回答待ち、D=完了、U=不明、E=空枠を表します。
 
-K9/K10の対応版はCodex CLI **0.155.1・0.160.0のみ**。会話・terminal・承認要求・表示画面が一致する場合だけ有効です。0.162.0では無効で、撮影前確認でも使用していません。K4はHerdr共通のpopupを閉じることがあります。
+K9/K10はCodex CLI **0.155.1・0.160.0のみ対応**し、操作対象と承認画面を確認できる場合に有効です。**0.162.0では無効**です。K4はHerdr共通のpopupを操作するため、別pluginのpopupを閉じる場合があります。
 
-## 開発・更新
+## 更新・開発
+
+更新時はCLI・Host bridge・App Serverを終了してから、リポジトリのルートで実行します。
+
+```sh
+git pull --ff-only
+git submodule update --init --recursive
+mise install
+mise exec -- sh -c 'cd host && npm ci && npm run build'
+```
+
+Codex CLIをHomebrewで更新した場合も、App Serverと各CLIを再起動してください。ソース変更の確認は実機なしで行えます。
 
 ```sh
 mise exec -- sh -c 'cd host && npm run typecheck && npm test && npm run dry-run -- WIBDUE'
 mise exec -- sh -c 'cd firmware && go test ./... && go vet ./...'
 ```
 
-実機なしで確認できます。更新は`git pull --ff-only`、`git submodule update --init --recursive`、Hostの`npm ci`・buildの順です。`git submodule update --remote`は使わず、親commitが固定した組合せを取得します。
+- [Hostの詳細・トラブルシューティング](host/README_JA.md) / [Firmware](firmware/README_JA.md)
+- [動作確認の範囲](docs/verification.md) / [通信仕様](PROTOCOL.md)
+- [使用ライブラリとライセンス](UPSTREAMS.md)
 
-- [Hostの詳細・復旧](host/README_JA.md) / [Firmware](firmware/README_JA.md)
-- [通信仕様](PROTOCOL.md) / [上流・ライセンス](UPSTREAMS.md)
-- [残る確認項目 #32](https://github.com/hoki621/codex-zero-kb02/issues/32)
-
-matrix/debounce・デバイスdriverには固定した公開ライブラリを使います。workshopのコードはコピーしていません。上流由来のソースとライセンスは各子リポジトリに明記しています。本体の独自コードにはまだライセンスを指定していません。
+上流ライブラリのライセンスは各子リポジトリに保持しています。このプロジェクト独自のコードにはまだライセンスを指定していません。
