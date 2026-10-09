@@ -1,5 +1,20 @@
 # 検証記録 — 2026-09-21
 
+## 2026-10-09: 実機を使わない組合せ検証
+
+一時ディレクトリへ親mainをクリーン取得し、[Firmware PR #1](https://github.com/hoki621/codex-zero-kb02-firmware/pull/1)の`9485033aac6c1e83098c19238cd1d31b98b9090b`と[Host PR #3](https://github.com/hoki621/codex-zero-kb02-host/pull/3)の`1a9a8625d5bc11e4ea1df234e936703546a3ccf4`を子repoにチェックアウトしました。親mainのgitlinkはまだこの組合せを固定していません。
+
+| 確認 | 結果 |
+| --- | --- |
+| Host `npm ci --ignore-scripts`、64テスト、mock `dry-run`/`input`/`display`/`faults` | PASS。一時npm cacheのみ使用 |
+| Firmware `go test -count=1 ./...`、`go vet ./...` | PASS。一時Go cacheのみ使用 |
+| Firmware TinyGo 0.40.1 / Go 1.25.13製品UF2 build | PASS、flash 42,108 byte、RAM 15,652 byte。このビルドのUF2 SHA-256は`3f42b978deb9ec312e1eeb76e1990c72aafbb86fb52b713eb8ba8bff6bb54260` |
+| TinyGo依存一覧 | 標準CDC/HID mouseを含み、HID keyboardを含まない |
+| 固定ライブラリprobe `sh docs/library-probe/check.sh` | PASS。固定SHAへpatchを適用し、HID keyboardなしでcompile-only UF2を生成。SHA-256は`1df270db82307d19566d559906e45966f02d83790394dc902e0a4f5fb0edec51` |
+| brew Codex CLI 0.160.0 | 一時CODEX_HOMEでApp Serverと推論設定の変更がPASS、model turn 0。承認キーの実画面操作は未実施 |
+
+TinyGoのコンパイルキャッシュ以外、既存brew/miseの導入済みツールや設定は変更していません。UF2は一時領域の検証出力で、機器へ書き込んでいません。書き込み、実USB、物理入力・表示、Herdr操作、デモは**NOT RUN**です。以下は2026-09-21時点の旧Host・旧Firmwareの記録として保持します。
+
 PC側実装とFirmware着手用成果物の検証です。製品全体の実機受入ではありません。
 Hostは `aeb1be89540271730140874566b916dde3a71ec8`（[PR #2](https://github.com/hoki621/codex-zero-kb02-host/pull/2)）です。正確なcommitは親gitlinkで固定します。Firmware `4d8104c5b4f3925b37394b0ca2d14c39486fc9a1` は未変更のmajor 1で、新Host major 2とは非互換です。
 
@@ -50,7 +65,7 @@ Codex試験は既存設定・履歴を使わない一時CODEX_HOMEの専用プ�
 
 ## 再現コマンド
 
-親repoでmise install後:
+親repoで`mise.toml`指定版をPATHから利用できる状態で（導入済みなら再インストール不要）:
 
 ```sh
 cd host
@@ -61,7 +76,7 @@ npm run dry-run -- WIBDUE
 npm run device:check -- doctor
 npm run smoke:codex
 cd ..
-mise exec -- sh docs/library-probe/check.sh
+sh docs/library-probe/check.sh
 ```
 
 実機の合格条件は[本人向け手順](firmware-handoff.md)を使用してください。

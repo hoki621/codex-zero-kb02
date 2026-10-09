@@ -40,7 +40,7 @@ K12はfocus中の割当済みCodexがidle/doneの場合だけ固定/newを送り
 ```sh
 git clone --recurse-submodules https://github.com/hoki621/codex-zero-kb02.git
 cd codex-zero-kb02
-mise install
+# mise.tomlに指定された版が未導入の場合だけmise install
 cd host
 npm ci
 npm run typecheck
@@ -50,7 +50,7 @@ npm run device:check -- display
 npm run device:check -- faults
 npm run dry-run -- WIBDUE
 cd ..
-mise exec -- sh docs/library-probe/check.sh
+sh docs/library-probe/check.sh
 ```
 
 device:checkはmockが既定です。`raw`は初期入力ログ用、`doctor`は実行ファイル・版・socket・通信majorの診断です。
@@ -116,7 +116,7 @@ serverは使用中のremote CLIをすべて終了してから止めます。
 ```sh
 git pull --ff-only
 git submodule update --init --recursive
-mise install
+# mise.tomlに指定された版が未導入の場合だけmise install
 cd host
 npm ci
 ```
@@ -126,7 +126,7 @@ npm ci
 ## 対応範囲と未検証項目
 
 Herdr 0.9.0のJSON schemaを参照し、必須フィールドを検証しています。内部protocol番号だけでは拒否しません。
-Codex 0.155.1の隔離API試験が成功しています。承認の対応版は0.155.1に限定し、process-onlyのkeymap指定でy/nを固定します。
+Codex 0.155.1と0.160.0の隔離API試験が成功しています。現在の親gitlinkが参照するHostは承認対応版を0.155.1に限定します。[Host PR #3](https://github.com/hoki621/codex-zero-kb02-host/pull/3)と[親PR #38](https://github.com/hoki621/codex-zero-kb02/pull/38)を適用すると0.160.0も対応し、process-onlyのkeymap指定でy/nを固定します。
 設定ファイルは変更しません。K4のpopupはHerdr session共通で、別pluginのpopupを閉じる場合があります。
 
 実Herdrの対話画面、USB列挙、物理入力、OLED/LED、抜き差し、flashは**NOT RUN**です。
