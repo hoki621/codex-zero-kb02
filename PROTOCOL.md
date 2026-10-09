@@ -102,4 +102,4 @@ npm run device:check -- display
 npm run device:check -- faults
 ```
 
-すべてmockが既定です。実機の段階別試験は[本人向け手順](docs/firmware-handoff.md)へ進んでください。
+すべてmockが既定です。実機の確認結果と残項目は[検証記録](docs/verification.md)を参照してください。

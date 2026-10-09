@@ -1,136 +1,88 @@
 # zero-kb02 Codex controller
 
-zero-kb02（RP2040）の12キー・Encoder・OLED/LEDを使い、macOSのHerdr上で動く最大6つのCodex CLIを表示・操作します。
-Codex CLIはHomebrewで管理します。TinyGo Firmwareは固定した公開ライブラリを組み合わせて実装します。
+[English](README_EN.md)
 
-**PC側は実装・独立レビュー済みです。Firmware major 2は[子repoのPR #1](https://github.com/hoki621/codex-zero-kb02-firmware/pull/1)でビルド済み、実機受入は未完了です。**
-HostはUSB **major 2**を使用します。親が保持する既存Firmware `4d8104c`はmajor 1なので接続できません。
-[段階別のFirmware手順](docs/firmware-handoff.md)は実機受入の順序として使います。親gitlinkは実機受入後に更新します。
+zero-kb02（RP2040）のキー・Encoder・OLED/LEDで、macOSのHerdr上にある最大6つのCodex CLIを表示・操作する個人用デバイスです。Joystickはマウスポインターを動かします。
 
-## 構成と操作
+[デモ動画（X）](https://x.com/hoki621/status/2093605017819423047) · [検証結果](docs/verification.md)
 
-- `host/`: Node.js 22。Herdrの状態取得、6枠管理、CDC通信、固定キー操作、Codex App Server接続、開発CLI。
-- `firmware/`: TinyGo実装。matrix/debounce、Encoder、OLED、LEDは公開ライブラリ、Joystickは標準HID mouse。製品固有のCDC契約と表示対応を接続します。
-- [PROTOCOL.md](PROTOCOL.md): major 2の通信契約。[UPSTREAMS.md](UPSTREAMS.md): 固定依存とライセンス。
-- [計画 #34](https://github.com/hoki621/codex-zero-kb02/issues/34): 作業管理。[検証記録](docs/verification.md): mock/API/buildと実機の区別。
-- [発表デモの準備](docs/demo-rehearsal.md): ライブラリと製品固有コードの境界、受入後の実演順と3回の記録欄。
+![構成図](assets/architecture-ja.drawio.svg)
 
-```text
-┌────────┬────────┬────────┬────────┐
-│ K1     │ K2     │ K3     │ K4     │
-│ Escape │ Agent1 │ Agent2 │ Status │
-├────────┼────────┼────────┼────────┤
-│ K5     │ K6     │ K7     │ K8     │
-│ Agent3 │ Agent4 │ Agent5 │ Agent6 │
-├────────┼────────┼────────┼────────┤
-│ K9     │ K10    │ K11    │ K12    │
-│ Approve│ Reject │ 未割当 │ /new   │
-└────────┴────────┴────────┴────────┘
-```
+Firmwareは入力と表示を担当し、HostがHerdrの状態・操作対象を確認します。Encoderによる推論の強さの変更は、専用Codex App Serverを通して行います。構成図のSVGはdraw.ioで編集できます。
 
-Encoderの時計回りはreasoning effortを1クリック1段階上げ、反時計回りは下げます。
-Joystickはポインター移動のみ。両pushは未割当です。
-OLEDはAgent1/2、3/4、5/6を2列3段に並べます。W=作業中、I=入力待ち、B=承認・回答待ち、D=完了、U=不明、E=空枠です。
+## 初期設定
 
-K9/K10は、対応版の単独command承認・会話ID・terminal・画面を確認できるときだけ固定y/nを各1回送ります。
-`blocked`だけでは送信しません。質問・未知の画面・複数の承認は無効です。永続承認やEnterは送りません。
-K12はfocus中の割当済みCodexがidle/doneの場合だけ固定/newを送ります。
-
-## キーボードなしで準備・確認
+必要なもの: macOS、zero-kb02、Herdr、Homebrew、mise。導入済みの環境はそのまま使えます。Node.js・Go・TinyGoの版は`mise.toml`で固定しています。Codex CLIはHomebrew版を使用します。
 
 ```sh
 git clone --recurse-submodules https://github.com/hoki621/codex-zero-kb02.git
 cd codex-zero-kb02
-# mise.tomlに指定された版が未導入の場合だけmise install
-cd host
-npm ci
-npm run typecheck
-npm test
-npm run device:check -- input
-npm run device:check -- display
-npm run device:check -- faults
-npm run dry-run -- WIBDUE
-cd ..
-sh docs/library-probe/check.sh
+mise install                 # 指定版が未導入の場合
+mise exec -- sh -c 'cd host && npm ci && npm run build'
+brew install --cask codex    # 未導入の場合
+herdr plugin link --enabled "$PWD/host"
 ```
 
-device:checkはmockが既定です。`raw`は初期入力ログ用、`doctor`は実行ファイル・版・socket・通信majorの診断です。
-依存probeは一時ディレクトリでビルドするだけで、書き込みません。64のHostテストと独立レビューの詳細は[検証記録](docs/verification.md)へ。
+Herdrの導入は[公式サイト](https://herdr.dev/)を参照してください。Codex CLIの認証を済ませてから起動します。Launcherはbrew版を選び、既存のCodex設定ファイルを変更しません。
 
-brew版App Serverを試す場合:
+Firmwareのビルド・書き込みは[日本語手順](firmware/README_JA.md)へ。HostとFirmwareはUSB CDC **major 2**の組合せが必要です。旧major 1とは接続できません。
 
-```sh
-cd host
-npm run smoke:codex
-```
+## 起動
 
-これは一時CODEX_HOMEのephemeral会話で、最初の発言前にreasoningを1段階変更します。
-モデルへの発言・実Herdrへの入力・USB接続はなく、終了時に専用プロセスと一時領域を削除します。
+以下はリポジトリのルートから実行します。各Terminalで同じ`TMPDIR=/tmp`を指定してください。Herdr内と外で一時ディレクトリが異なると、専用serverを見つけられません。
 
-## Firmware完成後の起動
-
-最初に[段階別手順](docs/firmware-handoff.md)のH0〜H4で、major 2対応Firmwareを実機確認してください。
-対象portは完全な名前を指定します。自動探索はしません。開発用CLI・他のserial monitorを終了してからbridgeを起動します。
-
-初回だけHost実行ファイルと固定Status pluginを登録します:
-
-```sh
-cd host
-npm run build
-npm link
-herdr plugin link --enabled "$(pwd)"
-```
-
-1. 通常Terminalでbrew版の専用serverを起動したままにします。
+1. 通常Terminalで専用serverを起動し、そのままにします。
 
    ```sh
-   brew install --cask codex  # 未導入の場合だけ
-   codex-micro doctor
-   codex-micro server
+   TMPDIR=/tmp mise exec -- node host/dist/src/codex-micro.js server
    ```
 
-2. Herdrの各Codex paneで`codex-micro`を実行します。再開は`codex-micro resume`です。
-3. 別の通常TerminalからHost bridgeを起動します。Herdrの管理pane内には置きません。
+2. Herdrの各ペインで起動します（最大6つ）。再開は末尾に`resume`を付けます。
 
    ```sh
-   cd host
-   HERDR_SOCKET_PATH="$HOME/.config/herdr/herdr.sock" \
-   ZERO_KB02_PORT=/dev/cu.usbmodemYOUR_DEVICE \
-   npm start
+   TMPDIR=/tmp mise exec -- node host/dist/src/codex-micro.js
    ```
 
-CLIとserverは同じbrew管理バイナリを使用します。`codex-micro`はstart/resume/forkの応答から正確な会話UUIDv7を登録します。
-Host bridgeを止めても専用serverや他の会話は止まりません。終了は各TerminalのCtrl-Cです。
-serverは使用中のremote CLIをすべて終了してから止めます。
+3. 別の通常Terminalでbridgeを起動します。実機の完全なport名を指定し、ほかのserial monitorは閉じます。
 
-## 復旧と更新
+   ```sh
+   TMPDIR=/tmp HERDR_SOCKET_PATH="$HOME/.config/herdr/herdr.sock" \
+   ZERO_KB02_PORT=/dev/cu.usbmodemzero_kb02_v21 \
+   mise exec -- node host/dist/src/main.js
+   ```
 
-- USB抜き差し: bridgeは同じportへ再接続し、全snapshotを再送します。再接続時に押していたキーは離してから操作します。
-- Herdr再起動: bridgeが再接続します。5秒ごとの再照合で状態を修復します。
-- Codexのbrew更新: remote CLIを終了し、専用serverをCtrl-Cで停止して再起動し、各paneでresumeします。対応外の承認画面は無効になります。
-- serial使用中: `lsof /exact/port`で所有者を確認し、自分のbridge/monitorを終了します。不明なプロセスを強制終了しません。
-- server/launcherの異常終了: [Host復旧手順](host/README.md#pc-setup-and-startup)でPID/socketを確認します。live ownerのファイルを削除しません。
-- Firmwareの復旧: [実機診断手順](firmware/docs/hardware-diagnostics.md)。Codexに実行させる場合、flash・port openは対象操作を明示して依頼してください。
+終了はCtrl-Cです。専用serverは利用中のCLIをすべて終了してから止めてください。brewでCodexを更新した場合も、serverを再起動して各ペインを再開します。
 
-親commitに固定したソースを取得します。`git submodule update --remote`は使いません。
+## 操作
+
+キー番号は上段左からK1〜K4、中段K5〜K8、下段K9〜K12です。
+
+| 入力 | 動作 |
+| --- | --- |
+| K1 | 選択中のCodexへEscape |
+| K2 / K3 / K5 / K6 / K7 / K8 | Agent 1〜6のペインへ切替 |
+| K4 | 状態一覧を開く・閉じる |
+| K9 / K10 | 確認できた単独command承認へ固定の承認・拒否を各1回 |
+| K11 | 未割当 |
+| K12 | 入力待ち・完了のCodexで新しい会話 |
+| Encoder | 時計回りで推論の強さを上げ、反時計回りで下げる |
+| Joystick | ポインター移動。両pushは未割当 |
+
+OLEDはAgent 1/2、3/4、5/6の2列3段。W=作業中、I=入力待ち、B=承認・回答待ち、D=完了、U=不明、E=空枠です。
+
+K9/K10の対応版はCodex CLI **0.155.1・0.160.0のみ**。会話・terminal・承認要求・表示画面が一致する場合だけ有効です。0.162.0では無効で、撮影前確認でも使用していません。K4はHerdr共通のpopupを閉じることがあります。
+
+## 開発・更新
 
 ```sh
-git pull --ff-only
-git submodule update --init --recursive
-# mise.tomlに指定された版が未導入の場合だけmise install
-cd host
-npm ci
+mise exec -- sh -c 'cd host && npm run typecheck && npm test && npm run dry-run -- WIBDUE'
+mise exec -- sh -c 'cd firmware && go test ./... && go vet ./...'
 ```
 
-過去のSessionStart hookを使用していた場合は[Hostの旧hook移行手順](host/README.md#legacy-hook-migration)も参照してください。新規導入にはhook不要です。
+実機なしで確認できます。更新は`git pull --ff-only`、`git submodule update --init --recursive`、Hostの`npm ci`・buildの順です。`git submodule update --remote`は使わず、親commitが固定した組合せを取得します。
 
-## 対応範囲と未検証項目
+- [Hostの詳細・復旧](host/README_JA.md) / [Firmware](firmware/README_JA.md)
+- [通信仕様](PROTOCOL.md) / [上流・ライセンス](UPSTREAMS.md)
+- [残る確認項目 #32](https://github.com/hoki621/codex-zero-kb02/issues/32)
 
-Herdr 0.9.0のJSON schemaを参照し、必須フィールドを検証しています。内部protocol番号だけでは拒否しません。
-Codex 0.155.1と0.160.0の隔離API試験が成功しています。現在の親gitlinkが参照するHostは承認対応版を0.155.1に限定します。[Host PR #3](https://github.com/hoki621/codex-zero-kb02-host/pull/3)と[親PR #38](https://github.com/hoki621/codex-zero-kb02/pull/38)を適用すると0.160.0も対応し、process-onlyのkeymap指定でy/nを固定します。
-設定ファイルは変更しません。K4のpopupはHerdr session共通で、別pluginのpopupを閉じる場合があります。
-
-major 2 Firmwareのflash、USB列挙、物理入力、OLED/LED、基本的な抜き差しは[実機検証記録](docs/verification.md)の範囲で確認しました。実Herdrの対話画面とHost接続中の復旧は[実機受入 #32](https://github.com/hoki621/codex-zero-kb02/issues/32)で確認します。親mainのFirmware gitlinkはまだ旧major 1です。
-launchd、自動起動、設定GUI、Vial制御、任意入力/任意shell、永続承認、PTT、model切替、Codex Desktop/Zed対応は範囲外です。
-
-開発は親Issueで管理し、childを先にcommit/pushしてから親gitlinkを更新します。Firmwareの実機受入はコードのビルド結果と分けて記録します。
+matrix/debounce・デバイスdriverには固定した公開ライブラリを使います。workshopのコードはコピーしていません。上流由来のソースとライセンスは各子リポジトリに明記しています。本体の独自コードにはまだライセンスを指定していません。

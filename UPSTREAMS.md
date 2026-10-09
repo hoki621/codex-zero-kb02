@@ -27,10 +27,10 @@ No upstream PR or external publication was made.
 [The compile-only probe](docs/library-probe/main.go) checks these public APIs
 together; [check.sh](docs/library-probe/check.sh) clones the exact SHA, applies the
 patch, rejects a HID keyboard dependency, and builds without opening a device.
-It is a learning prerequisite, not flashable product firmware or USB acceptance.
+It is compile-only dependency validation, not flashable product firmware or USB acceptance.
 The standard TinyGo CDCHID descriptor still includes unused keyboard report
 items; the input-only dependency installs neither a keyboard handler nor a
-Vial vendor interface. Real USB enumeration remains an H1 acceptance check.
+Vial vendor interface. USB descriptor inspection is separate from the functional checks in docs/verification.md.
 
 This project does not import official product branding, icons or USB identifiers.
 
