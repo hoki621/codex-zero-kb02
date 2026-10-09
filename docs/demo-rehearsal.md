@@ -2,6 +2,8 @@
 
 この説明は [Firmware PR #1](https://github.com/hoki621/codex-zero-kb02-firmware/pull/1) の `9485033` と [Host PR #3](https://github.com/hoki621/codex-zero-kb02-host/pull/3) の `1a9a862` を対象にします。親mainのgitlinkはまだこの組合せではありません。実機受入は [#32](https://github.com/hoki621/codex-zero-kb02/issues/32) に記録します。
 
+2026-10-09の撮影前確認ではHerdr 0.9.3とbrew Codex CLI 0.162.0を使用し、試験用1枠でK2・K4・K12・Encoder・Host接続中のUSB復帰を確認しました。[結果](verification.md#2026-10-09-撮影前のherdr接続確認)を参照してください。0.162.0の承認画面はHostの検証対象外なので、今回の撮影でK9/K10を押さないでください。
+
 ## 説明するコードの流れ
 
 | 見せる操作 | 公開ライブラリ・標準APIの役割 | この製品で書いた接続部分 |
@@ -17,7 +19,7 @@
 
 1. 現在のHost/Firmware SHA、brew Codex版、Herdr版、UF2 SHA-256を[#32](https://github.com/hoki621/codex-zero-kb02/issues/32)に記録する。復旧UF2と予備録画を手元に用意する。未確認の機器へこの手順だけを根拠に書き込まない。
 2. 6枠の状態を表示し、Agentキーで対応するpaneへ移動する。K4で状態一覧を開き、Encoderを左右へ回して対象会話のeffortだけが変わることを見せる。
-3. 内容を読める無害なcommand承認を別々に用意し、K9承認とK10拒否を各1回だけ見せる。承認画面を確認できなければこの場面を省き、未実施として記録する。
+3. Codex CLI 0.162.0ではK9/K10の承認・拒否を省き、未実施として記録する。対応版へ変更して再検証する場合だけ、内容を読める無害なcommand承認を別々に用意する。
 4. Joystickでポインターを動かし、押しボタンには機能がないことを説明する。USBを抜き差しした後、表示と割当が復帰することを見せる。復帰しなければ復旧手順に移り、その回は失敗として記録する。
 
 ## リハーサル結果
