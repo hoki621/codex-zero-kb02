@@ -1,16 +1,16 @@
 # zero-kb02 Codex controller
 
 zero-kb02（RP2040）の12キー・Encoder・OLED/LEDを使い、macOSのHerdr上で動く最大6つのCodex CLIを表示・操作します。
-Codex CLIはHomebrewで管理します。TinyGo Firmwareは公開ライブラリを使って本人が実装します。
+Codex CLIはHomebrewで管理します。TinyGo Firmwareは固定した公開ライブラリを組み合わせて実装します。
 
-**PC側は実装・独立レビュー済みです。Firmwareと実機受入は未完了です。**
+**PC側は実装・独立レビュー済みです。Firmware major 2は[子repoのPR #1](https://github.com/hoki621/codex-zero-kb02-firmware/pull/1)でビルド済み、実機受入は未完了です。**
 HostはUSB **major 2**を使用します。親が保持する既存Firmware `4d8104c`はmajor 1なので接続できません。
-本人は[段階別のFirmware手順](docs/firmware-handoff.md)から進めてください。実機試験前に旧UF2を新Hostへ接続する手順にはしていません。
+[段階別のFirmware手順](docs/firmware-handoff.md)は実機受入の順序として使います。親gitlinkは実機受入後に更新します。
 
 ## 構成と操作
 
 - `host/`: Node.js 22。Herdrの状態取得、6枠管理、CDC通信、固定キー操作、Codex App Server接続、開発CLI。
-- `firmware/`: 本人所有のTinyGo実装。matrix/debounce、Encoder、OLED、LEDはライブラリ、Joystickは標準HID mouse。
+- `firmware/`: TinyGo実装。matrix/debounce、Encoder、OLED、LEDは公開ライブラリ、Joystickは標準HID mouse。製品固有のCDC契約と表示対応を接続します。
 - [PROTOCOL.md](PROTOCOL.md): major 2の通信契約。[UPSTREAMS.md](UPSTREAMS.md): 固定依存とライセンス。
 - [計画 #34](https://github.com/hoki621/codex-zero-kb02/issues/34): 作業管理。[検証記録](docs/verification.md): mock/API/buildと実機の区別。
 
@@ -68,7 +68,7 @@ npm run smoke:codex
 
 ## Firmware完成後の起動
 
-最初に[本人向け手順](docs/firmware-handoff.md)のH0〜H4を完了し、major 2対応Firmwareを自分で検証してください。
+最初に[段階別手順](docs/firmware-handoff.md)のH0〜H4で、major 2対応Firmwareを実機確認してください。
 対象portは完全な名前を指定します。自動探索はしません。開発用CLI・他のserial monitorを終了してからbridgeを起動します。
 
 初回だけHost実行ファイルと固定Status pluginを登録します:
@@ -133,4 +133,4 @@ Codex 0.155.1の隔離API試験が成功しています。承認の対応版は0
 [実機受入 #32](https://github.com/hoki621/codex-zero-kb02/issues/32)で確認します。PC試験の成功を実機成功として扱いません。
 launchd、自動起動、設定GUI、Vial制御、任意入力/任意shell、永続承認、PTT、model切替、Codex Desktop/Zed対応は範囲外です。
 
-開発は親Issueで管理し、childを先にcommit/pushしてから親gitlinkを更新します。Firmwareの実装は本人が所有します。
+開発は親Issueで管理し、childを先にcommit/pushしてから親gitlinkを更新します。Firmwareの実機受入はコードのビルド結果と分けて記録します。

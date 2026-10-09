@@ -1,4 +1,8 @@
-# 本人が進めるFirmware作業
+# Firmwareの段階別作業・実機受入
+
+Firmware major 2の実装候補は[子repo PR #1](https://github.com/hoki621/codex-zero-kb02-firmware/pull/1)にあります。
+以下のH0〜H4は部品ごとの確認・実機受入の順序として使います。コード担当はCodexに変更されました。
+PRのビルド成功を実機合格とは扱いません。書き込みやport openは対象操作の明示依頼が必要です。
 
 zero-kb02の入力・表示を公開ライブラリで組み立て、USB CDC major 2でPC側Hostへ接続します。
 Firmware本体は自分で実装します。PC側のコード・確認CLI・通信仕様・依存検証は用意されています。

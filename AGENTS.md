@@ -18,10 +18,10 @@
 
 - The product design is Issue #34; the wire contract is PROTOCOL.md major 2.
   Old major 1 remains reference-only and must never be auto-detected as major 2.
-- Firmware implementation belongs to the user. Codex may prepare design docs,
-  dependency patches and temporary compile-only probes; do not implement or
-  modify `firmware/` without a separate request.
+- Firmware implementation is authorized by the user's 2026-10-09 request.
+  Reuse pinned upstream libraries and preserve their licenses; keep product-specific
+  protocol and display mapping local. Physical acceptance remains separate.
 - TinyGo standard HID mouse is allowed for joystick movement. HID keyboard
   output, Vial controls and both push actions are outside the product scope.
-- When the user starts firmware work, align firmware/AGENTS.md with the input-only
-  library build tag and major 2 contract before changing its implementation.
+- Keep firmware/AGENTS.md aligned with the input-only library build tag and
+  major 2 contract.

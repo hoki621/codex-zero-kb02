@@ -1,7 +1,8 @@
 # Upstream references and licenses
 
 Firmware uses maintained input/display libraries and TinyGo standard USB APIs.
-No workshop code is copied. Product firmware implementation remains user-owned.
+No workshop code is copied. The product-specific CDC contract and display mapping
+are local; the matrix scanner/debounce and device drivers come from pinned upstreams.
 
 | Project | Pinned reference | License / use |
 | --- | --- | --- |
