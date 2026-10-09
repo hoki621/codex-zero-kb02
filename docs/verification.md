@@ -1,5 +1,20 @@
 # 検証記録 — 2026-09-21
 
+## 2026-10-09: major 2の実機確認
+
+対象はFirmware `9485033aac6c1e83098c19238cd1d31b98b9090b`、Host `1a9a8625d5bc11e4ea1df234e936703546a3ccf4`。TinyGo 0.40.1 / Go 1.25.13で作ったUF2のSHA-256は`ee3f75332566795c20f858d7b6ef3436c6232ac0715c92ca6cd6e372d5cd4d27`。復旧用UF2を確認し、本人の許可を得て、接続中の旧`zero-kb02-v1`へ1回書き込みました。USBには`zero-kb02-v2`、`/dev/cu.usbmodemzero_kb02_v21`として再列挙しました。
+
+| 確認 | 観測と判定 |
+| --- | --- |
+| 表示 | Hostの`display --device`を2回実行。6枠、選択枠の移動、offline、LEDの色と消灯を本人が目視で「すべて期待どおり」と確認。PASS（目視） |
+| 入力 | Hostの`input --device`でK1〜K12を各20回。受信ログは各キーのDOWN/UPがそれぞれ20件で、番号違い・余分な通知なし。PASS（通信ログ） |
+| Encoder | 1クリックずつのCW/CCWは各1件を受信。連続回転では本人がおよそ100クリックを手で数え、ログはCW 127件、CCW 11件、差し引き116。操作回数に誤差があるため100クリックの定量合否は保留 |
+| Joystick | 中立約30秒でポインターのドリフトなし、上下左右が期待方向と本人が目視確認。PASS（目視。ADC生値は未測定） |
+| 通信異常 | Hostの`faults --device`で過長行と13秒の通信停止を実行。HELLO major 2を受信、本人が約12秒でoffline表示・LED消灯を確認。PASS（CLIと目視） |
+| USB抜き差し | 確認CLI終了後に本人が1回実施。表示の復帰を目視し、Macで同じ`/dev/cu.usbmodemzero_kb02_v21`の再列挙を確認。PASS（起動復帰のみ） |
+
+実Herdr/Codexへの操作、Host接続中の状態復元、押下中の再接続、全不正入力、デモ3回と録画は未実施です。連続回転は厳密なクリック数を保証できないため、欠落率の証拠に使いません。
+
 ## 2026-10-09: 実機を使わない組合せ検証
 
 一時ディレクトリへ親mainをクリーン取得し、[Firmware PR #1](https://github.com/hoki621/codex-zero-kb02-firmware/pull/1)の`9485033aac6c1e83098c19238cd1d31b98b9090b`と[Host PR #3](https://github.com/hoki621/codex-zero-kb02-host/pull/3)の`1a9a8625d5bc11e4ea1df234e936703546a3ccf4`を子repoにチェックアウトしました。親mainのgitlinkはまだこの組合せを固定していません。
@@ -8,12 +23,12 @@
 | --- | --- |
 | Host `npm ci --ignore-scripts`、64テスト、mock `dry-run`/`input`/`display`/`faults` | PASS。一時npm cacheのみ使用 |
 | Firmware `go test -count=1 ./...`、`go vet ./...` | PASS。一時Go cacheのみ使用 |
-| Firmware TinyGo 0.40.1 / Go 1.25.13製品UF2 build | PASS、flash 42,108 byte、RAM 15,652 byte。このビルドのUF2 SHA-256は`3f42b978deb9ec312e1eeb76e1990c72aafbb86fb52b713eb8ba8bff6bb54260` |
+| Firmware TinyGo 0.40.1 / Go 1.25.13製品UF2 build | PASS、flash 40,544 byte、RAM 14,588 byte。UF2 SHA-256は`ee3f75332566795c20f858d7b6ef3436c6232ac0715c92ca6cd6e372d5cd4d27` |
 | TinyGo依存一覧 | 標準CDC/HID mouseを含み、HID keyboardを含まない |
 | 固定ライブラリprobe `sh docs/library-probe/check.sh` | PASS。固定SHAへpatchを適用し、HID keyboardなしでcompile-only UF2を生成。SHA-256は`1df270db82307d19566d559906e45966f02d83790394dc902e0a4f5fb0edec51` |
 | brew Codex CLI 0.160.0 | 一時CODEX_HOMEでApp Serverと推論設定の変更がPASS、model turn 0。承認キーの実画面操作は未実施 |
 
-TinyGoのコンパイルキャッシュ以外、既存brew/miseの導入済みツールや設定は変更していません。UF2は一時領域の検証出力で、機器へ書き込んでいません。書き込み、実USB、物理入力・表示、Herdr操作、デモは**NOT RUN**です。以下は2026-09-21時点の旧Host・旧Firmwareの記録として保持します。
+最初の一時cloneではPATHがHomebrewのTinyGo 0.42.0とGo 1.25.14を選んでいました。以前この出力を0.40.1の結果と誤記したため訂正しました。実機用にはインストール済みの固定版バイナリをパス指定して再ビルドし、元checkoutとfresh cloneで上記hashが一致しました。brew/miseの導入済みツールや設定は変更していません。以下は2026-09-21時点の旧Host・旧Firmwareの記録として保持します。
 
 PC側実装とFirmware着手用成果物の検証です。製品全体の実機受入ではありません。
 Hostは `aeb1be89540271730140874566b916dde3a71ec8`（[PR #2](https://github.com/hoki621/codex-zero-kb02-host/pull/2)）です。正確なcommitは親gitlinkで固定します。Firmware `4d8104c5b4f3925b37394b0ca2d14c39486fc9a1` は未変更のmajor 1で、新Host major 2とは非互換です。
@@ -60,7 +75,7 @@ Codex試験は既存設定・履歴を使わない一時CODEX_HOMEの専用プ�
 - claim中の強制終了で`.json.lock`が残る場合は、owner processを確認して手動回復します。live ownerを自動削除しません。
 - 最終確認とHerdr送信は別APIです。確認から送信までの変化を原子的に排除するAPIはありません。
 - 標準CDCHID descriptor内の未使用keyboard項目は残ります。Vial/keyboard handlerがないことと、実USB列挙の確認を区別します。
-- GPIO方向、Encoder分解能、Joystick校正、LED順、表示負荷、USB復旧は実機で確認します。
+- GPIO方向、Joystick方向、LED順とUSBの起動復帰は上記の実機観察で確認しました。Encoderの定量一致、ADC生値、表示負荷下の入力、Host接続中のUSB復旧は未確認です。
 - C4の実機受入済みgitlink・製品Firmwareのfresh build・デモ3回/録画は#32後です。PC成果物の統合を実機受入済み統合とは呼びません。
 
 ## 再現コマンド

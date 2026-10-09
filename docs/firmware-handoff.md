@@ -39,7 +39,7 @@ Firmware本体は子repo PR #1に実装済みです。以下の実装項目は�
 
 1. 子repoの`AGENTS.md`がmajor 2・標準HID mouse許可・input-only利用を定めていることを確認します。
 2. `third_party/tinygo-keyboard/`に固定SHAとpatch、`LICENSE.txt`があり、go.modのreplaceがそのディレクトリを指すことを確認します。
-3. 製品UF2をビルドするときは、子repo READMEのコマンドで必ず`-tags kb02_inputonly`を指定します。タグなしのビルドは失敗する設計です。
+3. 製品UF2をビルドするときは`go version`と`tinygo version`がGo 1.25.13 / TinyGo 0.40.1であることを確認し、子repo READMEのコマンドで必ず`-tags kb02_inputonly`を指定します。PATHが別版を選ぶ場合は、導入済みの固定版バイナリをパス指定します。タグなしのビルドは失敗する設計です。
 4. `MatrixKeyboard.Get()`が物理状態を取得し、Firmwareがその変化をCDCへ対応付ける境界をコードで確認します。
 
 `check.sh`は同じ固定SHA・patch・版でのfresh clone/buildを再現します。ライセンス・出典は[UPSTREAMS](../UPSTREAMS.md)。upstreamへの投稿はしていません。
@@ -107,4 +107,4 @@ Firmware本体は子repo PR #1に実装済みです。以下の実装項目は�
 4. USB/Host/Herdr再起動を分けて試し、別paneへ入力が飛ばないことを確認します。
 5. Host/Firmware SHA、brew Codex版、Herdr版、UF2 SHA256、成功/失敗/未実施を#32へ記録します。発表デモを3回通し、復旧UF2と予備録画を保存します。
 
-ここまでの実機試験は未実施です。#32の受入が終わるまで、製品全体の完成・実機互換性を主張しません。
+major 2 Firmwareの実機試験の一部は[検証記録](verification.md)に記載しました。#32のHerdr/Codex統合受入と残る復旧試験が終わるまで、製品全体の完成・実機互換性を主張しません。
