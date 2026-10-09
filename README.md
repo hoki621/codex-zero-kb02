@@ -13,6 +13,7 @@ HostはUSB **major 2**を使用します。親が保持する既存Firmware `4d8
 - `firmware/`: TinyGo実装。matrix/debounce、Encoder、OLED、LEDは公開ライブラリ、Joystickは標準HID mouse。製品固有のCDC契約と表示対応を接続します。
 - [PROTOCOL.md](PROTOCOL.md): major 2の通信契約。[UPSTREAMS.md](UPSTREAMS.md): 固定依存とライセンス。
 - [計画 #34](https://github.com/hoki621/codex-zero-kb02/issues/34): 作業管理。[検証記録](docs/verification.md): mock/API/buildと実機の区別。
+- [発表デモの準備](docs/demo-rehearsal.md): ライブラリと製品固有コードの境界、受入後の実演順と3回の記録欄。
 
 ```text
 ┌────────┬────────┬────────┬────────┐
